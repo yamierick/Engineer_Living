@@ -1,0 +1,716 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(sp)
+library(rgdal)
+library(raster)
+library(colorRamps)
+library(rasterVis)
+library(rgeos)
+library(tidyverse)
+```
+
+```{r}
+#Land Use detailed Inventory the dataset i use to generate the shape files
+
+austin <- shapefile('Land_Use_Inventory_Detailed/geo_export_d7c7327c-8d24-4ac9-bee0-08c1a9eefd2f')
+
+#Zoning dataset
+
+zoning <- shapefile('Zoning/geo_export_adbd67fd-45d2-4f9e-8971-44932efeda9a.shp')
+
+#Other Austin Databases that provide more or less the same data but decided to use the former because of recency and better information
+#austin_buildings <- shapefile('land_use_2010/land_use_2010.shp')
+#austin_database <- shapefile('Land_Database_2016/geo_export_9703915f-23a5-4c4a-8d6b-437572f96fd1.shp')
+
+
+
+head(austin)
+head(zoning)
+#head(austin_buildings)
+#head(austin_database)
+
+plot(zoning)
+#plot(austin_buildings)
+#plot(austin_database)
+```
+
+
+```{r}
+head(austin,20)
+
+#all austin land that is used by houses including mobile homes, single family homes, and large rural type lots.
+#Excludes Apartments and multifamily housing
+austin_houses <- subset(austin, general_la == '100'| general_la == '113' | general_la == '160')
+#undeveloped land also 
+austin_undeveloped <- subset(austin, general_la == '900')
+
+#austin land covered by water
+austin_water <- subset(austin, general_la == '940')
+
+#austin infrastructure for cars includes roads, parking, and bus and rail stations
+austin_trans <- subset(austin, general_la == '800' | general_la == '860')
+
+#austin businesses including apartments and other multifamily properties also includes utilities
+austin_businesses <- subset(austin, general_la == '200' | general_la == '300' | general_la == '330' | general_la == '400' | general_la == '500' | general_la == '600' | general_la == '870')
+
+#austin parks and open spaces
+austin_parks <- subset(austin, general_la == '700')
+
+#austin minus undeveloped and parks
+austin1 <- subset(austin, general_la == '100'| general_la == '113' | general_la == '160' | general_la == '200' | general_la == '300' | general_la == '330' | general_la == '400' | general_la == '500' | general_la == '600' | general_la == '800' | general_la == '860' | general_la == '870' )
+
+#austin1 <- gUnaryUnion(austin1, austin1@data$created_by)
+
+plot(austin_houses, border = 'red', col = 'red')
+plot(austin_trans, border = 'yellow', col = 'yellow')
+plot(austin_businesses, border = 'purple', col = 'purple')
+plot(austin_parks, border = 'green', col = 'green')
+plot(austin_undeveloped, border = 'blue', col = 'blue')
+
+plot(austin1, border = 'grey', col = 'grey')
+plot(austin_trans, add = T, border = 'yellow', col = 'yellow')
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+#getting to know the data
+
+parkinglots <- austin[austin$land_use == '850',]
+
+alltrans <- subset(austin, general_la == '800' | general_la == '860')
+
+sum(austin$shape_area)
+sum(austin1$shape_area)
+sum(parkinglots$shape_area)
+sum(alltrans$shape_area)
+
+print(paste('Percent of Parking Lots over Total Austin Area', sum(parkinglots$shape_area)/sum(austin$shape_area)*100, sep =': '))
+print(paste('Precent of all Transportation Infrastructure over Total Austin area', sum(alltrans$shape_area)/sum(austin$shape_area)*100, sep = ': '))
+
+print(paste('Percent of Parking Lots over Developed Austin Area', sum(parkinglots$shape_area)/sum(austin1$shape_area)*100, sep =': '))
+print(paste('Precent of all Transportation Infrastructure over Developed Austin area', sum(alltrans$shape_area)/sum(austin1$shape_area)*100, sep = ': '))
+
+#sorting by the 39 land use parameters
+
+landuse <- aggregate(austin1$shape_area, by = list(austin1$land_use), FUN = sum)
+
+names(landuse) <- c('land_use', 'shape_area')
+
+landuse$percentage <- landuse$shape_area / sum(landuse$shape_area) * 100
+
+
+#sorting by the higher level 16 parameters
+
+genuse <- aggregate(austin1$shape_area, by = list(austin1$general_la), FUN = sum)
+
+names(genuse) <- c('general_la', 'shape_area')
+
+genuse$percentage <- genuse$shape_area / sum(genuse$shape_area) * 100
+
+landuse
+
+genuse
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+#Pretty Austin
+
+plot(austin_undeveloped, border = 'grey', col = 'grey')
+plot(austin_water, add = T, border = 'blue', col = 'blue')
+plot(austin_parks, add = T, border = 'green', col = 'green')
+plot(austin_trans, add = T, border = 'yellow', col = 'yellow')
+plot(austin_houses, add = T, border = 'red', col = 'red')
+plot(austin_businesses, add = T, border = 'purple', col = 'purple')
+
+
+
+
+
+```
+
+```{r}
+
+#conversion from square feet to square miles
+c <- 27878000
+d <- sum(austin1$shape_area)
+
+print(paste('Total Austin area sq mi', sum(austin$shape_area)/c))
+print(paste('Total Austin Developed area sq mi', sum(austin1$shape_area)/c))
+print(paste('Total Austin Undeveloped Land', sum(austin_undeveloped$shape_area)/c))
+print(paste('Total Austin water sq mi', sum(austin_water$shape_area)/c))
+print(paste('Total Austin Park Land', sum(austin_parks$shape_area)/c))
+print(paste('Total Austin Transportation', sum(austin_trans$shape_area)/c))
+print(paste('Total Austin housing Area', sum(austin_houses$shape_area)/c))
+print(paste('Total Austin Business Area', sum(austin_businesses$shape_area)/c))
+
+
+print(paste('Percentage Austin Undeveloped Land', sum(austin_undeveloped$shape_area)*100/sum(austin$shape_area)))
+print(paste('Percentage Austin water sq mi', sum(austin_water$shape_area)*100/d))
+print(paste('Percentage Austin Park Land', sum(austin_parks$shape_area)*100/sum(austin$shape_area)))
+print(paste('Percentage Austin Transportation', sum(austin_trans$shape_area)*100/d))
+print(paste('Percentage Austin housing Area', sum(austin_houses$shape_area)*100/d))
+print(paste('Percentage Austin Business Area', sum(austin_businesses$shape_area)*100/d))
+
+      
+
+```
+
+
+```{r}
+#Reading in Housing, Apartment/Multifamily, and Commerical Property Information
+
+resi <- read.csv('2015-2017__ECAD_Residential_Audit_Data.csv')
+  
+multi <- read.csv('ECAD_Multifamily_Audit_and_EUI_Data_as_of_August_29__2018.csv')
+  
+commercial <- read.csv('ECAD__2017_Commercial_Annual_Benchmarking__7_25_2018_.csv') 
+
+
+```
+
+
+
+```{r}
+#compare square footages with the shapefiles
+
+nrow(resi)
+nrow(distinct(resi, Street.Address, SQFT))
+nrow(multi)
+nrow(distinct(multi, Full.Street.Address, Total.SqFt))
+nrow(commercial)
+nrow(distinct(commercial, Property.ID.., Commercial.Property..Property.Street.Address, Total.SqFt))
+
+#getting rid of duplicates
+resi <- distinct(resi, Street.Address, SQFT, .keep_all = TRUE)
+multi <- distinct(multi, Full.Street.Address, Total.SqFt, .keep_all = TRUE)
+commercial <- distinct(commercial, Property.ID.., Commercial.Property..Property.Street.Address, Total.SqFt, .keep_all = TRUE)
+          
+
+print(paste('Total Residential Square Ft', sum(resi$SQFT)))
+
+print(paste('Total Multifamily Square Ft',sum(multi$Total.SqFt)))
+
+print(paste('Total Commerical Sq Ft', sum(commercial$Total.SqFt)))
+
+
+sum(austin_houses$shape_area)
+sum(austin_businesses$shape_area)
+
+
+#Checking data to get interesting information and to check for errors
+
+print(paste('Average house sqft', mean(resi$SQFT)))
+
+print(paste('Largest house sqft', max(resi$SQFT)))
+
+print(paste('Average Apartment average sqft', mean(multi$Average.Apt.Size)))
+
+print(paste('Average Apartment number of units', mean(multi$ECAD.Total.Apts)))
+
+print(paste('Total Number of Apartment units', sum(multi$ECAD.Total.Apts)))
+
+
+
+print(paste('Largest Apartment average sqft', max(multi$Average.Apt.Size)))
+
+print(paste('Largest Apartment number of units', max(multi$ECAD.Total.Apts)))
+
+
+
+print(paste('Average Commerical Building sqft', mean(commercial$Total.SqFt)))
+
+print(paste('Largest Commerical Building sqft', max(commercial$Total.SqFt)))
+
+#duplicates check easy to see if they are the same propert based on the following inputs
+
+#resi_trim <- resi[,c('Street.Address', 'SQFT')]
+#multi_trim <- multi[,c('Full.Street.Address', 'ECAD.Number.of.Buildings', 'ECAD.Total.Apts', 'Average.Apt.Size', 'Total.SqFt')]
+#commercial_trim <- commercial[,c('Commercial.Property..Property.Street.Address', 'Total.SqFt')]
+
+
+
+
+
+
+
+
+```
+
+```{r}
+resi[resi$SQFT > 7000,]
+#produces 10 houses, checked the addresses seems legit
+
+multi[multi$Average.Apt.Size > 1400, ]
+#checked the math and teh websites these are high end or have 4 bedrooms meant for sharing seems legit
+
+multi[multi$ECAD.Total.Apts > 525,]
+#checked these either skyscrapers or sprawlings apartments legit
+
+#fixes a weird input for the properties at 6500 RIVER PLACE
+#for(i in 1: nrow(commercial)){
+#if(commercial$Commercial.Property..Property.Street.Address[i] == '6500 RIVER PLACE BLVD, AUSTIN TX, 78730'){
+#  commercial$Total.SqFt[i] <- commercial$Portfolio.Manager.SqFt[i]
+#}
+#}
+
+#2650 commerical buildings in the list about 181 of them are bigger than 200,000 sqft., 28 more than 500000, 
+commercial[commercial$Total.SqFt > 500000,]
+
+
+
+```
+
+```{r}
+#Residential Parking Spots Assume 2 Parking Spots per House 9ft x 18ft = 162 sq ft each
+
+#number of houses in dataset
+print(paste('Number of parking spaces based only the ECAD dataset (number of houses * 2)', nrow(resi)*2))
+
+#Multifamily Spots Assume Less than 600 sqft (studio), 1 bedroom 600-950 sqft, 2 bedroom 950-1250 sqft, 3 bedroom 1250-1400 sqft, 4 bedroom > 1400 sqft
+#1 parking spot for studio, 1.5 spots for 1 bedroom, 2 spots for 2 bedroom, and 2.5 spots for 3 bedroom from Austin parking code, 3 spots for 4 bedrooms
+
+for(i in 1:nrow(multi)){
+  
+  if(multi$Average.Apt.Size[i] <= 600){
+    multi$parking[i] <- 1 * multi$ECAD.Total.Apts[i] 
+  }
+  if(600 < multi$Average.Apt.Size[i] & multi$Average.Apt.Size[i] <= 950){
+    multi$parking[i] <- 1.5 * multi$ECAD.Total.Apts[i]
+  }
+   if(950 < multi$Average.Apt.Size[i] & multi$Average.Apt.Size[i] <= 1250){
+    multi$parking[i] <- 2 * multi$ECAD.Total.Apts[i]
+   }
+   if(1250 < multi$Average.Apt.Size[i] & multi$Average.Apt.Size[i] <= 1400){
+    multi$parking[i] <- 2.5 * multi$ECAD.Total.Apts[i]
+   }
+  if(multi$Average.Apt.Size[i] > 1400){
+    multi$parking[i] <- 3 * multi$ECAD.Total.Apts[i]
+   }
+  
+}
+
+print(paste('Average number of parking spots per apartment', mean(multi$parking)))
+print(paste('Total number of parking spots for all apartment', sum(multi$parking)))
+print(paste('Total number of apartments in the ECAD dataset', sum(multi$ECAD.Total.Apts)))
+  
+    
+#Commerical Parking Spots Assuming 1 parking spot per 275 /sqft there are other rules and it varys but its seems to be a good rule to start with
+
+print(paste('Parking Spaces for Commerical Buildings Assuming 1 spot per 275 sqft', sum(commercial$Total.SqFt)/275))
+total_ECAD_parking <- sum(commercial$Total.SqFt)/275 + sum(multi$parking) + nrow(resi)*2
+print(paste('Total Number of Parking based on ECAD database only:', total_ECAD_parking))
+print(paste('Total sqft of Parking based on ECAD database only:', total_ECAD_parking*162))
+print(paste('Total Austin SqFt in ECAD Buildings', sum(commercial$Total.SqFt)+sum(resi$SQFT)+sum(multi$Total.SqFt)))
+print(paste('Total Developed city surface area (sqft)', sum(austin1$shape_area)))
+print(paste('Total city surface area (sqft) for Transportation', sum(austin_trans$shape_area)))
+print(paste('Percentage of Developed Austin Land that is used for ECAD parking', total_ECAD_parking*162*100/sum(austin1$shape_area)))
+print(paste('Percentage of Developed Austin Land that is used for ECAD parking and Other Transportation', (total_ECAD_parking*162+sum(austin_trans$shape_area))*100/sum(austin1$shape_area)))
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+#Trimming the Zoning data
+#unique(zoning$zoning_zty)
+
+#Get rid of the excess characters trimming to only 4 characters reduces the unique zones to about 75
+
+#zoning$two_letters <- zoning$zoning_zty
+zoning$zoning_zty1 <- str_trunc(zoning$zoning_zty, 5)
+
+unique(zoning$zoning_zty1)
+
+#checking how many rows in the dataframe
+nrow(zoning)
+#Checking each row has an appropiate code
+length(which(zoning$zoning_zty1 == '...'))
+
+```
+
+```{r}
+#Using zoning data can determine how many lots are of each type
+#need to extrapolate the sq ft of a building for a given lot by comparing the ECAD data with the number of possible lots
+
+
+#Setting all NA values to X
+zoning$zoning_zty1[which(is.na(zoning$zoning_zty1))] <- 'X'
+
+
+#initialize the number of lots and parking
+zoning$lots <- 1
+zoning$parking <- 0
+zoning$zoning_ind <- 0
+
+
+#SF MH - Single Family 2 parking spots per house more or less (5750 / sq ft per lot)
+
+
+for(i in 1:nrow(zoning)){
+if(grepl('SF',zoning$zoning_zty1[i]) == TRUE | grepl('MH',zoning$zoning_zty1[i]) == TRUE){
+  zoning$lots[i] <- zoning$shape_area[i] / 5750
+  zoning$parking[i] <- zoning$lots[i] * 2
+  zoning$zoning_ind[i] <- '1'
+}
+  
+  
+#MF - Multi Family (8000/sqft) Using average number of parking spaces per 8000 sq ft from above 
+#(267694 parking spots / 142120223 ECAD sqft * 8000 = 15.06 parkings spots per 8000 sqft lot)
+#Have to take into account number of floors, so dividing total sqft by number of floors to get 
+  
+  if(grepl('MF',zoning$zoning_zty1[i]) == TRUE) {
+  zoning$lots[i] <- zoning$shape_area[i] / 8000
+  zoning$parking[i] <- zoning$lots[i] * 15.06
+  zoning$zoning_ind[i] <- '2'
+}
+
+#LA, RR Lake Austin and Rural Residence also assume 4 per house (43560 sq ft)
+   
+  if(grepl('LA',zoning$zoning_zty1[i]) == TRUE | grepl('RR',zoning$zoning_zty1[i]) == TRUE) {
+  zoning$lots[i] <- zoning$shape_area[i] / 43560
+  zoning$parking[i] <- zoning$lots[i] * 4
+  zoning$zoning_ind[i] <- '3'
+}
+  
+
+#NO, LO, GO, MU, LR, GR, CS, LI,  W/LO, L Assume same as office (5750 / sq ft) parking spot / 275 sq ft
+   if(grepl('NO',zoning$zoning_zty1[i]) == TRUE | grepl('LO',zoning$zoning_zty1[i]) == TRUE | grepl('GO',zoning$zoning_zty1[i]) == TRUE |
+      grepl('MU',zoning$zoning_zty1[i]) == TRUE | grepl('LR',zoning$zoning_zty1[i]) == TRUE | grepl('GR',zoning$zoning_zty1[i]) == TRUE | 
+     grepl('CS',zoning$zoning_zty1[i]) == TRUE | grepl('LI',zoning$zoning_zty1[i]) == TRUE | grepl('LO',zoning$zoning_zty1[i]) == TRUE | 
+     grepl( 'L',zoning$zoning_zty1[i]) == TRUE){
+  zoning$lots[i] <- zoning$shape_area[i] / 5750
+  zoning$parking[i] <- zoning$lots[i] * 5760/275
+  zoning$zoning_ind[i] <- '4'
+}
+  
+  
+
+#CR, CH Recreation (20,000 sq ft) 1 space for 500 sqft
+  
+   if(grepl('CR',zoning$zoning_zty1[i]) == TRUE | grepl('CH',zoning$zoning_zty1[i]) == TRUE) {
+  zoning$lots[i] <- zoning$shape_area[i] / 20000
+  zoning$parking[i] <- zoning$lots[i] * 20000/500
+  zoning$zoning_ind[i] <- '5'
+}
+  
+#IP MI R&D Industrial (43,560 or higher assume 250,000 ~ 5 acres) (no guidelines assume 1 per 1000 sq ft)
+  
+   if(grepl('IP',zoning$zoning_zty1[i]) == TRUE | grepl('MI',zoning$zoning_zty1[i]) == TRUE | grepl('R&D',zoning$zoning_zty1[i]) == TRUE) {
+  zoning$lots[i] <- zoning$shape_area[i] / 250000
+  zoning$parking[i] <- zoning$lots[i] * 250000/1000
+  zoning$zoning_ind[i] <- '6'
+}
+  
+#CBD, DMU Downtown and and Downtown Mixed use (no size) (assume all of downtown is represented by parking garages)
+if(grepl('CBD',zoning$zoning_zty1[i]) == TRUE) {
+  zoning$lots[i] <- 1
+  zoning$parking[i] <- 0
+  zoning$zoning_ind[i] <- '7'
+
+#DR AV AG P PUD H PDA TN V Special units or planned developments assume have no parking
+
+  
+}
+}
+```
+
+
+```{r}
+#checking sorting
+
+length(which(zoning$lots == 1))
+nrow(zoning)
+sum(zoning$parking)
+length(unique(zoning$zoning_zty1))
+
+table(zoning$zoning_zty1)
+
+table(zoning$zoning_ind)
+
+#head(zoning,20)
+
+grepl('CBD', zoning$zoning_zty1[1])
+ 
+
+```
+
+```{r}
+
+zoning_sfamily <- subset(zoning, zoning_ind == '1')
+
+zoning_mfamily <- subset(zoning, zoning_ind == '2')
+
+zoning_rfamily <- subset(zoning, zoning_ind == '3')
+
+zoning_commercial <- subset(zoning, zoning_ind == '4')
+
+zoning_rec <- subset(zoning, zoning_ind == '5')
+
+zoning_industrial <- subset(zoning, zoning_ind == '6')
+
+zoning_CBD <- subset(zoning, zoning_ind == '7')
+
+zoning_other <- subset(zoning, zoning_ind == '0')
+
+plot(zoning_sfamily, border = 'red', col = 'red')
+plot(zoning_mfamily, border = 'blue', col = 'blue')
+plot(zoning_rfamily, border = 'green', col = 'green')
+plot(zoning_commercial, border = 'yellow', col = 'yellow')
+plot(zoning_rec, border = 'green', col = 'green')
+plot(zoning_industrial, border = 'brown', col = 'brown')
+plot(zoning_CBD, border = 'purple', col = 'purple')
+plot(zoning_other, border = 'grey', col = 'grey')
+
+plot(zoning_sfamily, border = 'red', col = 'red')
+plot(zoning_mfamily, add=T, border = 'blue', col = 'blue')
+plot(zoning_rfamily, add=T, border = 'green', col = 'green')
+plot(zoning_commercial, add=T, border = 'purple', col = 'purple')
+plot(zoning_rec, add=T, border = 'green', col = 'green')
+plot(zoning_industrial, add=T, border = 'pink', col = 'pink')
+plot(zoning_CBD, add=T, border = 'orange', col = 'orange')
+plot(zoning_other, add=T, border = 'grey', col = 'grey')
+
+
+
+
+```
+
+```{r}
+#area of the different zones
+print('Area of the zones')
+print(paste('Housing Area', (sum(zoning_sfamily$shape_area)+sum(zoning_mfamily$shape_area)+sum(zoning_rfamily$shape_area))/c))
+sum(zoning_sfamily$shape_area)/c
+sum(zoning_mfamily$shape_area)/c
+sum(zoning_rfamily$shape_area)/c
+sum(zoning_commercial$shape_area)/c
+sum(zoning_rec$shape_area)/c
+sum(zoning_industrial$shape_area)/c
+sum(zoning_CBD$shape_area)/c
+sum(zoning_other$shape_area)/c
+
+#Percentage of Different Zones
+
+e <- sum(zoning$shape_area)
+
+print(paste('Housing Area Percentage', (sum(zoning_sfamily$shape_area)+sum(zoning_mfamily$shape_area)+sum(zoning_rfamily$shape_area))/e))
+sum(zoning_sfamily$shape_area)/e
+sum(zoning_mfamily$shape_area)/e
+sum(zoning_rfamily$shape_area)/e
+sum(zoning_commercial$shape_area)/e
+sum(zoning_rec$shape_area)/e
+sum(zoning_industrial$shape_area)/e
+sum(zoning_CBD$shape_area)/e
+sum(zoning_other$shape_area)/e
+
+
+#number of lots by zone
+
+print('Number of Lots by Zone' )
+sum(zoning_sfamily$lots)
+sum(zoning_mfamily$lots)
+sum(zoning_rfamily$lots)
+sum(zoning_commercial$lots)
+sum(zoning_rec$lots)
+sum(zoning_industrial$lots)
+sum(zoning_CBD$lots)
+sum(zoning_other$lots)
+
+#current estimated parking by zone
+
+print('Estimated parking spots by zone')
+sum(zoning_sfamily$parking)
+sum(zoning_mfamily$parking)
+sum(zoning_rfamily$parking)
+sum(zoning_commercial$parking)
+sum(zoning_rec$parking)
+sum(zoning_industrial$parking)
+sum(zoning_CBD$parking)
+sum(zoning_other$parking)
+
+
+
+
+
+
+```
+
+```{r}
+
+plot(austin_houses, border = 'red', col = 'red')
+plot(zoning_sfamily, add=T, border = 'blue', col = 'blue')
+plot(zoning_mfamily, add=T, border = 'green', col = 'green')
+plot(zoning_rfamily, add=T, border = 'yellow', col = 'yellow')
+
+```
+
+
+```{r}
+#Extrapolating the commerical square footage from the ECAD data
+
+
+sum(commercial$Total.SqFt)
+
+sum(zoning_commercial$shape_area)
+
+nrow(commercial)
+
+sum(zoning_commercial$lots)
+
+
+mean(commercial$Total.SqFt)
+
+unique(commercial$Category)
+
+table(commercial$Category)
+
+```
+
+
+```{r}
+
+
+
+#Garages and street parking takes about X sqft of space. Note this does not include parking spaces at business or there garages either
+
+austin_parking <- subset(austin, land_use == '850')
+
+print(paste('Area taken up by garages and street parking', sum(austin_parking$shape_area)))
+
+#There are about 180,000 houses and 220,000 apartment units in Austin. there are also about 1,000,000 people/cars
+
+#There should be about 360,000 parking spots for cars at houses. Our extrapolations show:
+print(paste('Extrapolated parking from zoning data', sum(zoning_sfamily$parking)+sum(zoning_rfamily$parking)))
+
+#overestimation for houses is due to the fact that some lots are much larger than others for instance we calculate 385,600 lots, but there are actually less than 200,000 houses in Austin
+
+sum(zoning_sfamily$lots) + sum(zoning_rfamily$lots)
+print(paste('Sqare feet of Single Family housing', mean(resi$SQFT)*180000))
+
+#There should be 640,000 parking spots for cars at apartments. Our extrapolations show:
+print(paste('Number of parking spots from multi family calculated from ECAD and Zoning data', sum(zoning_mfamily$parking)))
+
+print(paste('Total Square Feet of Mulifamily Space', sum(multi$Total.SqFt)))
+
+#Almost spot on
+
+##There is about 300 million of commercial real estate in the Austin area which should mean there are about 1 million commercial spots
+
+#ECAD data takes into account of 187 million of the 300 million commerical property
+print(paste('ECAD Total Commercial Sq ft.', sum(commercial$Total.SqFt)))
+
+#Parking spaces just from the ECAD data since it is more representative of an Austin area and we want to conservatively give a lower bound of the area it takes up not just the number of spaces
+
+print(paste('Parking Spaces for Commerical Buildings Assuming 1 spot per 275 sqft', sum(commercial$Total.SqFt)/275))
+
+#If we assume all the parking spaces we cacluated plus the garage and parking spaces from the city data are 1 to 1 with the land area they take up we have 
+
+numspaces <- sum(commercial$Total.SqFt)/275+sum(zoning_mfamily$parking)+360000
+print(paste('Total Number of Parking Spaces', numspaces))
+
+#Then the land area of these parking spaces is the garage sqft plus the Total number of spaces*162 sq ft (18*9)
+
+k <- sum(multi$Total.SqFt) + sum(commercial$Total.SqFt)
+
+l <- (numspaces-360000)*162/(k+(numspaces-360000)*162)
+
+print(paste('Total land area taken up by parking', numspaces*162))
+print(paste('Total square footage of buildings', k + 180000*mean(resi$SQFT)))
+print(paste('Percentage of multi and commercial square footage taken by parking:', l*100))
+print(paste('Percentage of Total Austin Land taken up by parking', numspaces*162*100/sum(austin1$shape_area)))
+print(paste('Percentage of Developed Zoned Austin Land taken up by parking', numspaces*162*100/(sum(zoning$shape_area)-sum(zoning_other$shape_area)-sum(zoning_rec$shape_area))))
+print(paste('Percentage of Developed Austin Land taken up by parking', numspaces*162*100/(sum(austin_businesses$shape_area)+sum(austin_houses$shape_area))))
+
+
+```
+
+```{r}
+#bonus coverage solar roof space in Austin
+
+#Houses are easy enough using 100 sqft for 1 kW
+
+print(paste('Solar MW Potential of about 180,000 houses:', mean(resi$SQFT)*180000/(100*1000)))
+
+mean(resi$SQFT)
+
+
+
+#Apartments are bit harder since they have a different number of floors, but the ECAD data is prety comprehensive and includes floors so
+
+#Sets all NA floors to 4 to be conservative
+
+multi$ECAD.Number.of.Floors[which(is.na(multi$ECAD.Number.of.Floors))] <- 4
+multi$ECAD.Number.of.Buildings[which(is.na(multi$ECAD.Number.of.Buildings))] <- 1
+
+print(paste('Number of Multifamily Buildings:', sum(multi$ECAD.Number.of.Buildings)))
+
+
+print(paste('Solar MW Potential of ECAD Apartments:', sum(multi$Total.SqFt)/(mean(multi$ECAD.Number.of.Floors)*100*1000)))
+
+
+#Commercial buildings are also diffuculut but due to zoning the highest most buildings can be except those down town can be is 4 floors. So assuming all buildings are only 4 floors will give a conservative estimate
+
+print(paste('Solar MW Potential of ECAD Commerical Buildings:', sum(commercial$Total.SqFt)/(4*100*1000)))
+
+print(paste('Number of ECAD commercial buildings', nrow(commercial)))
+
+#Total GW Potential
+
+GW_Pot <- (sum(commercial$Total.SqFt)/(4*100) + sum(multi$Total.SqFt)/(mean(multi$ECAD.Number.of.Floors)*100) + mean(resi$SQFT)*180000/100)/1000000
+
+print(paste('Total GW Potential from Austin ECAD Buildings at 1 kW/ 100 sqft', GW_Pot))
+
+# Number of panels to get 4 GW at 1 panel/ 250 Watts
+
+print(paste('Number of panels needed:', GW_Pot*1000000000/250))
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
