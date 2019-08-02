@@ -1,0 +1,753 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+require(formattable)
+require(tidyr)
+
+require(htmltools)
+require(webshot)
+
+
+
+
+
+
+#Set a few color variables to make our table more visually appealing
+
+customGreen0 = "#DeF7E9"
+
+customGreen = "#71CA97"
+
+customRed = "#ff7f7f"
+
+```
+
+```{r}
+#break up sims dataframe into multiple dataframes
+
+simsnti <- sims
+
+i <- 1
+trafficsum <- list()
+time <- seq(5,180,5)
+
+while (i <= 30){
+  
+  interm <- sims[[i]]
+  
+  tf1 <- Reduce("+", lapply(interm, "[[", 2))
+  tf35 <- Reduce("+", lapply(interm, "[[", 3))
+  tf183 <- Reduce("+", lapply(interm, "[[", 4))
+  tflm <- Reduce("+", lapply(interm, "[[", 5))
+  tf8 <- Reduce("+", lapply(interm, "[[", 6))
+  tf290 <- Reduce("+", lapply(interm, "[[", 7))
+  
+  interm1 <- as.data.frame(cbind(time,tf1,tf35,tf183,tflm,tf8,tf290))
+  trafficsum <- c(trafficsum, list(interm1))
+  
+  i <- i + 1
+}
+
+mean2 <- round(Reduce("+", lapply(trafficsum, "[[", 2)),1)
+mean3 <- round(Reduce("+", lapply(trafficsum, "[[", 3)),1)
+mean4 <- round(Reduce("+", lapply(trafficsum, "[[", 4)),1)
+mean5 <- round(Reduce("+", lapply(trafficsum, "[[", 5)),1)
+mean6 <- round(Reduce("+", lapply(trafficsum, "[[", 6)),1)
+mean7 <- round(Reduce("+", lapply(trafficsum, "[[", 7)),1)
+
+trafficmean <- as.data.frame(cbind(time,mean2,mean3,mean4,mean5,mean6,mean7))
+trafficmean <- round(trafficmean/(length(trafficsum)),1)
+trafficmean$time <- time
+
+
+
+trafficvar1 <-lapply(trafficsum, function(x) {(x - trafficmean)^2})
+
+tf1 <- Reduce('+', lapply(trafficvar1, "[[", 2))
+tf35 <- Reduce('+', lapply(trafficvar1, "[[", 3))
+tf183 <- Reduce('+', lapply(trafficvar1, "[[", 4))
+tflm <- Reduce('+', lapply(trafficvar1, "[[", 5))
+tf290 <- Reduce('+', lapply(trafficvar1, "[[", 6))
+
+trafficvar <- as.data.frame(cbind(time,tf1,tf35,tf183,tflm,tf8,tf290))
+trafficvar <- trafficvar/(length(trafficsum)-1)
+trafficvar$time <- time
+
+
+
+trafficsd <- round(sqrt(trafficvar),1)
+trafficsd$time <- time
+
+
+colnames(trafficmean) <- c('Time', 'Mopac', 'I-35', 'US-183', 'Lamar Blvd', '8th Street', 'US-290')
+colnames(trafficvar) <- c('Time', 'Mopac', 'I-35', 'US-183', 'Lamar Blvd', '8th Street', 'US-290')
+colnames(trafficsd) <-  c('Time', 'Mopac', 'I-35', 'US-183', 'Lamar Blvd', '8th Street', 'US-290')
+
+
+
+formattable(trafficsd, align =c('c',"c","c","c","c","c", "c"), list(
+  'time' = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  'Mopac' = color_tile(customGreen, customGreen0),
+  `I-35`= color_tile(customGreen, customGreen0),
+  `US-183`= color_tile(customGreen, customGreen0),
+  `Lamar Blvd`= color_tile(customGreen, customGreen0),
+  `8th Street`= color_tile(customGreen, customGreen0),
+  `US-290`= color_tile(customGreen, customGreen0)
+))
+
+formattable(trafficmean, align =c('c', "c","c","c","c","c", "c"), list(
+  'time' = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  'Mopac' = color_tile(customGreen0, customGreen),
+  `I-35`= color_tile(customGreen0, customGreen),
+  `US-183`= color_tile(customGreen0, customGreen),
+  `Lamar Blvd`= color_tile(customGreen0, customGreen),
+  `8th Street`= color_tile(customGreen0, customGreen),
+  `US-290`= color_tile(customGreen0, customGreen)
+))
+
+
+trafficrange <- data.frame(matrix(,nrow = 4, ncol = 6))
+rownames(trafficrange) <- c('Max Mean', 'Max Standard Deviation', '99% Interval Lower Bound', '99% Interval Upper Bound')
+colnames(trafficrange) <-  c('Mopac', 'I-35', 'US-183', 'Lamar Blvd', '8th Street', 'US-290')
+
+trafficrange[1,1]<- round(max(trafficmean[,2]),1)
+trafficrange[1,2]<- round(max(trafficmean[,3]),1)
+trafficrange[1,3]<- round(max(trafficmean[,4]),1)
+trafficrange[1,4]<- round(max(trafficmean[,5]),1)
+trafficrange[1,5]<- round(max(trafficmean[,6]),1)
+trafficrange[1,6]<- round(max(trafficmean[,7]),1)
+
+trafficrange[2,1]<- round(max(trafficsd[,2]),1)
+trafficrange[2,2]<- round(max(trafficsd[,3]),1)
+trafficrange[2,3]<- round(max(trafficsd[,4]),1)
+trafficrange[2,4]<- round(max(trafficsd[,5]),1)
+trafficrange[2,5]<- round(max(trafficsd[,6]),1)
+trafficrange[2,6]<- round(max(trafficsd[,7]),1)
+
+trafficrange[3,] <- round(trafficrange[1,] - qt(.995,29)*trafficrange[2,]/sqrt(30),1)
+trafficrange[4,] <- round(trafficrange[1,] + qt(.995,29)*trafficrange[2,]/sqrt(30),1)
+
+
+formattable(trafficrange, align =c('c',"c","c","c","c", "c"), list(
+  row.names = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  'Mopac' = color_tile(customGreen0, customGreen),
+  `I-35`= color_tile(customGreen0, customGreen),
+  `US-183`= color_tile(customGreen0, customGreen),
+  `Lamar Blvd`= color_tile(customGreen0, customGreen),
+  `8th Street`= color_tile(customGreen0, customGreen),
+  `US-290`= color_tile(customGreen0, customGreen)
+))
+
+trafficspeed <- data.frame(matrix(,nrow = 4, ncol = 11))
+rownames(trafficspeed) <- c('Monocentric', 'Estimated Monocentric', 'Calculated Multicentric', 'Traffic Multicentric')
+colnames(trafficspeed) <- c('Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Sector 5', 'Sector 6', 'Sector 7', 'Sector 8', 'Sector 9', 'Sector 10', 'Sector 11')
+
+trafficspeed[1,] <- round(1000,1)
+trafficspeed[2,1] <- trafficspeed[2,3] <- round(16 * 2 * 300 * 0.15,1)
+trafficspeed[2,5] <- trafficspeed[2,6] <- round(4.5 * 2 * 300 * 0.15,1)
+trafficspeed[2,2] <- trafficspeed[2,10] <- round(11.17 * 2 * 300 * 0.15,1)
+trafficspeed[2,8] <- trafficspeed[2,11] <- round(16.67 * 2 * 300 * 0.15,1)
+trafficspeed[2,4] <- trafficspeed[2,7] <- round(11.67 * 2 * 300 * 0.15,1)
+trafficspeed[2,9] <- round(9.83 * 2 * 300 * 0.15,1)
+
+trafficspeed[3,] <- round(traveltimes*2*300*0.15,1)
+
+trafficspeed[4,] <- round(trafficspeed[3,]*nstm1[1,],1)
+
+
+  
+ formattable(trafficspeed, align =c('c',"c","c","c","c", "c"), list(
+  row.names = formatter("span", style = ~ style(color = "grey",font.weight = "bold")), 
+  'Sector 1' = color_tile(customGreen0, customGreen),
+  'Sector 2'= color_tile(customGreen0, customGreen),
+  'Sector 3'= color_tile(customGreen0, customGreen),
+  'Sector 4'= color_tile(customGreen0, customGreen),
+  'Sector 5'= color_tile(customGreen0, customGreen),
+  'Sector 6'= color_tile(customGreen0, customGreen),
+  'Sector 7'= color_tile(customGreen0, customGreen),
+  'Sector 8'= color_tile(customGreen0, customGreen),
+  'Sector 9'= color_tile(customGreen0, customGreen),
+  'Sector 10'= color_tile(customGreen0, customGreen),
+  'Sector 11'= color_tile(customGreen0, customGreen)
+))
+
+# pdf("Means.pdf", height=11, width=8.5)
+# grid.table(trafficmean)
+# dev.off()
+# 
+# pdf("SD.pdf", height =11, width = 8.5)
+# grid.table(trafficsd)
+# dev.off()
+# 
+# pdf("Range.pdf", height =2, width = 8.5)
+# grid.table(trafficrange)
+# dev.off()
+# 
+pdf("Speeds.pdf", height =2, width = 12)
+grid.table(trafficspeed)
+dev.off()
+
+
+
+```
+
+```{r}
+
+
+#arrivals data
+
+lbda <- c(21,28,21,28,28,28,28,21,17,17,21)
+
+bins0 <- list()
+
+rn <- 2
+
+while(rn <= 36){
+
+
+
+#Bin 1
+bin1 <- do.call(rbind, replicate(lbda[1], matrix(c(1,5), ncol = 2), simplify=FALSE))
+
+#Bin 2
+bin2 <- do.call(rbind, replicate(lbda[2], matrix(c(3,5), ncol = 2), simplify=FALSE))
+
+#Bin 3
+bin3 <- do.call(rbind, replicate(lbda[3], matrix(c(5,5), ncol = 2), simplify=FALSE))
+
+#Bin 4
+bin4 <- do.call(rbind, replicate(lbda[4], matrix(c(1,3), ncol = 2), simplify=FALSE))
+
+bin5 <- do.call(rbind, replicate(lbda[5], matrix(c(3,4), ncol = 2), simplify=FALSE))
+
+bin6 <- do.call(rbind, replicate(lbda[6], matrix(c(3,2), ncol = 2), simplify=FALSE))
+
+bin7 <- do.call(rbind, replicate(lbda[7], matrix(c(5,3), ncol = 2), simplify=FALSE))
+
+bin8 <- do.call(rbind, replicate(lbda[8], matrix(c(1,1), ncol = 2), simplify=FALSE))
+
+bin910 <- do.call(rbind, replicate((lbda[9]+lbda[10]), matrix(c(3,1), ncol = 2), simplify=FALSE))
+
+bin11 <- do.call(rbind, replicate(lbda[11], matrix(c(5,1), ncol = 2), simplify=FALSE))
+
+
+#Mopac Bins
+binmo1 <- do.call(rbind, replicate(round(trafficmean[rn,2]/2), matrix(c(2,4), ncol = 2), simplify=FALSE))
+
+binmo2 <- do.call(rbind, replicate(round(trafficmean[rn,2]/2), matrix(c(2,2), ncol = 2), simplify=FALSE))
+
+#35 bins
+bin35a <- do.call(rbind, replicate(round(trafficmean[rn,3]/2), matrix(c(4,4), ncol = 2), simplify=FALSE))
+
+bin35b <- do.call(rbind, replicate(round(trafficmean[rn,3]/2), matrix(c(4,2), ncol = 2), simplify=FALSE))
+
+#183 bins
+bin183a <- do.call(rbind, replicate(round(trafficmean[rn,4]/2), matrix(c(2,5), ncol = 2), simplify=FALSE))
+
+bin183b <- do.call(rbind, replicate(round(trafficmean[rn,4]/2), matrix(c(4,5), ncol = 2), simplify=FALSE))
+
+#Lamar Bins
+
+binlm <- do.call(rbind, replicate(round(trafficmean[rn,5]), matrix(c(3,3), ncol = 2), simplify=FALSE))
+
+#8th Bins
+
+bin8a <- do.call(rbind, replicate(round(trafficmean[rn,6]/2), matrix(c(2,3), ncol = 2), simplify=FALSE))
+
+bin8b <- do.call(rbind, replicate(round(trafficmean[rn,6]/2), matrix(c(4,3), ncol = 2), simplify=FALSE))
+
+#290 bins
+
+bin290a <- do.call(rbind, replicate(round(trafficmean[rn,7]/2), matrix(c(2,1), ncol = 2), simplify=FALSE))
+
+bin290b <- do.call(rbind, replicate(round(trafficmean[rn,7]/2), matrix(c(4,1), ncol = 2), simplify=FALSE))
+
+
+bins1 <- as.data.frame(rbind(bin1,bin2,bin3,bin4,bin5,bin6,bin7,bin8,bin910,bin11,binmo1,binmo2,bin35a,bin35b,bin183a,bin183b,binlm,bin8a,bin8b,bin290a,bin290b))
+
+bins1 <- bins1-0.5
+
+bins0[[(rn+2)]] <- bins1
+
+print(rn)
+rn <- rn + 4
+
+
+
+}
+
+
+
+
+
+#plot a histogram using all the 19 points for your favorite (or use the average of all the sims) time periods
+
+pbins1 <-ggplot(bins0[[4]], aes(x=bins0[[4]][,1], y=bins0[[4]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '6:20 - 6:25')
+
+pbins1
+
+pbins2 <-ggplot(bins0[[8]], aes(x=bins0[[8]][,1], y=bins0[[8]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '6:40 - 6:45')
+
+pbins3 <-ggplot(bins0[[12]], aes(x=bins0[[12]][,1], y=bins0[[12]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '7:00 - 7:05')
+
+pbins4 <-ggplot(bins0[[16]], aes(x=bins0[[16]][,1], y=bins0[[16]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '7:20 - 7:25')
+
+pbins5 <-ggplot(bins0[[20]], aes(x=bins0[[20]][,1], y=bins0[[20]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20 )) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '7:40 - 7:45')
+
+
+pbins6 <-ggplot(bins0[[24]], aes(x=bins0[[24]][,1], y=bins0[[24]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '8:00 - 8:05')
+
+pbins7 <-ggplot(bins0[[28]], aes(x=bins0[[28]][,1], y=bins0[[28]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '8:20 - 8:25')
+
+pbins8 <-ggplot(bins0[[32]], aes(x=bins0[[32]][,1], y=bins0[[32]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis( limits = c(20,150), option = 'inferno', direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+  labs(title = '8:40 - 8:45')
+
+pbins9 <-ggplot(bins0[[36]], aes(x=bins0[[36]][,1], y=bins0[[36]][,2]) ) +
+  #geom_point()+
+  geom_bin2d(bins = 4) +
+  scale_fill_viridis(limits = c(20,150), option = 'inferno', begin = 0, end = 1, direction = -1) +
+  guides(fill = guide_colourbar(barwidth = 0.5, barheight = 3, nbins = 20)) +
+  #scale_fill_distiller(palette=4, direction=-1) +
+   theme_minimal()+
+  xlab("")+
+  ylab("")+
+    labs(title = '9:00 - 9:05')
+
+
+bins <- grid.arrange(pbins1,pbins2,pbins3, pbins4,pbins5,pbins6,pbins7,pbins8,pbins9, ncol=3, nrow = 3)
+bins
+
+ggsave(filename = "traffic_grid.pdf", bins)
+
+```
+
+```{r}
+traveltimes <- c(1:11)
+
+#Time takes 1
+i <- 1
+
+list1time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist1[[i]])){
+list1time[j,i]<- dflist1[[i]][j,4]+dflist1[[i]][j,6]+dflist1[[i]][j,8]+dflist1[[i]][j,10]+dflist1[[i]][j,12]+dflist1[[i]][j,14]+dflist1[[i]][j,16]+dflist1[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list1time
+
+traveltime1 <- colMeans(list1time, na.rm = TRUE)
+
+traveltimes[1] <- mean(traveltime1)
+
+
+#Time takes 2
+i <- 1
+
+list2time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist2[[i]])){
+list2time[j,i]<- dflist2[[i]][j,4]+dflist2[[i]][j,6]+dflist2[[i]][j,8]+dflist2[[i]][j,10]+dflist2[[i]][j,12]+dflist2[[i]][j,14]+dflist2[[i]][j,16]+dflist2[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list2time
+
+traveltime2 <- colMeans(list2time, na.rm = TRUE)
+
+traveltimes[2] <- mean(traveltime2)
+
+#Time takes 3
+i <- 1
+
+list3time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist3[[i]])){
+list3time[j,i]<- dflist3[[i]][j,4]+dflist3[[i]][j,6]+dflist3[[i]][j,8]+dflist3[[i]][j,10]+dflist3[[i]][j,12]+dflist3[[i]][j,14]+dflist3[[i]][j,16]+dflist3[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list3time
+
+traveltime3 <- colMeans(list3time, na.rm = TRUE)
+
+traveltimes[3] <- mean(traveltime3)
+
+#Time takes 4
+i <- 1
+
+list4time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist4[[i]])){
+list4time[j,i]<- dflist4[[i]][j,4]+dflist4[[i]][j,6]+dflist4[[i]][j,8]+dflist4[[i]][j,10]+dflist4[[i]][j,12]+dflist4[[i]][j,14]+dflist4[[i]][j,16]+dflist4[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list4time
+
+traveltime4 <- colMeans(list4time, na.rm = TRUE)
+
+traveltimes[4] <- mean(traveltime4)
+
+#Time takes 5
+i <- 1
+
+list5time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist5[[i]])){
+list5time[j,i]<- dflist5[[i]][j,4]+dflist5[[i]][j,6]+dflist5[[i]][j,8]+dflist5[[i]][j,10]+dflist5[[i]][j,12]+dflist5[[i]][j,14]+dflist5[[i]][j,16]+dflist5[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list5time
+
+traveltime5 <- colMeans(list5time, na.rm = TRUE)
+
+traveltimes[5] <- mean(traveltime5)
+
+
+#Time takes 6
+i <- 1
+
+list6time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist6[[i]])){
+list6time[j,i]<- dflist6[[i]][j,4]+dflist6[[i]][j,6]+dflist6[[i]][j,8]+dflist6[[i]][j,10]+dflist6[[i]][j,12]+dflist6[[i]][j,14]+dflist6[[i]][j,16]+dflist6[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list6time
+
+traveltime6 <- colMeans(list6time, na.rm = TRUE)
+
+traveltimes[6] <- mean(traveltime6)
+
+#Time takes 7
+i <- 1
+
+list7time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist7[[i]])){
+list7time[j,i]<- dflist7[[i]][j,4]+dflist7[[i]][j,6]+dflist7[[i]][j,8]+dflist7[[i]][j,10]+dflist7[[i]][j,12]+dflist7[[i]][j,14]+dflist7[[i]][j,16]+dflist7[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list7time
+
+traveltime7 <- colMeans(list7time, na.rm = TRUE)
+
+traveltimes[7] <- mean(traveltime7)
+
+#Time takes 8
+i <- 1
+
+list8time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist8[[i]])){
+list8time[j,i]<- dflist8[[i]][j,4]+dflist8[[i]][j,6]+dflist8[[i]][j,8]+dflist8[[i]][j,10]+dflist8[[i]][j,12]+dflist8[[i]][j,14]+dflist8[[i]][j,16]+dflist8[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list8time
+
+traveltime8 <- colMeans(list8time, na.rm = TRUE)
+
+traveltimes[8] <- mean(traveltime8)
+
+#Time takes 9
+i <- 1
+
+list9time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist9[[i]])){
+list9time[j,i]<- dflist9[[i]][j,4]+dflist9[[i]][j,6]+dflist9[[i]][j,8]+dflist9[[i]][j,10]+dflist9[[i]][j,12]+dflist9[[i]][j,14]+dflist9[[i]][j,16]+dflist9[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list9time
+
+traveltime9 <- colMeans(list9time, na.rm = TRUE)
+
+traveltimes[9] <- mean(traveltime9)
+
+#Time takes 10
+i <- 1
+
+list10time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist10[[i]])){
+list10time[j,i]<- dflist10[[i]][j,4]+dflist10[[i]][j,6]+dflist10[[i]][j,8]+dflist10[[i]][j,10]+dflist10[[i]][j,12]+dflist10[[i]][j,14]+dflist10[[i]][j,16]+dflist10[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list10time
+
+traveltime10 <- colMeans(list10time, na.rm = TRUE)
+
+traveltimes[10] <- mean(traveltime10)
+
+#Time takes 11
+i <- 1
+
+list11time <- data.frame(matrix(,nrow = 40,ncol = 36))
+while(i <= 36){
+j <- 1
+
+while(j <= nrow(dflist11[[i]])){
+list11time[j,i]<- dflist11[[i]][j,4]+dflist11[[i]][j,6]+dflist11[[i]][j,8]+dflist11[[i]][j,10]+dflist11[[i]][j,12]+dflist11[[i]][j,14]+dflist11[[i]][j,16]+dflist11[[i]][j,18]
+
+  j <- j + 1
+}
+
+i <- i+1
+}
+
+list11time
+
+traveltime11 <- colMeans(list11time, na.rm = TRUE)
+
+traveltimes[11] <- mean(traveltime11)
+
+traveltimes
+
+```
+```{r}
+#Prelim Equations
+
+snormas <- rnorm(120, 1.004, 0.001)
+stm <- c(1:11)
+nstm <- data.frame(matrix(ncol = 11, nrow = 0))
+colnames(nstm) <- c('Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Sector 5', 'Sector 6', 'Sector 7', 'Sector 8', 'Sector 9', 'Sector 10', 'Sector 11')
+
+#Road and Highway Multipliers
+
+
+norms1 <- rnorm(120, trafficrange[1,1], trafficrange[2,1])
+norms35 <- rnorm(120, trafficrange[1,2], trafficrange[2,2])
+norms183 <- rnorm(120, trafficrange[1,3], trafficrange[2,3])
+normslm <- rnorm(120, trafficrange[1,4], trafficrange[2,4])
+norms8 <- rnorm(120, trafficrange[1,5], trafficrange[2,5])
+norms290 <- rnorm(120, trafficrange[1,6], trafficrange[2,6])
+
+
+
+tm1 <- snormas^norms1
+tm35 <- snormas^norms35
+tm183<- snormas^norms183
+tmlm <- snormas^normslm
+tm8 <- snormas^norms8
+tm290 <- snormas^norms290
+
+#weighted multipliers
+
+j <- 1
+while(j <= 30){
+i <- 1
+
+while(i <= 11){
+
+dem <- mean(traffic[[i]][,2])+mean(traffic[[i]][,3])+mean(traffic[[i]][,4])+mean(traffic[[i]][,5])+mean(traffic[[i]][,6])+mean(traffic[[i]][,7])
+
+stm[i] <- (mean(traffic[[i]][,2])*sample(tm1,1)+mean(traffic[[i]][,3])*sample(tm35,1)+ mean(traffic[[i]][,4])*sample(tm183,1)+mean(traffic[[i]][,5])*sample(tmlm,1)+ mean(traffic[[i]][,6])*sample(tm8,1)+mean(traffic[[i]][,7])*sample(tm290,1))/dem
+
+i <- i + 1
+}
+
+# Weighted Multiplers for the traffic case add them to the normalized dataframe
+nstm <- rbind(nstm,stm)
+j <- j + 1
+
+}
+colnames(nstm) <- c('Sector 1', 'Sector 2', 'Sector 3', 'Sector 4', 'Sector 5', 'Sector 6', 'Sector 7', 'Sector 8', 'Sector 9', 'Sector 10', 'Sector 11')
+nstm
+
+nstm1 <- as.data.frame.list(round(colMeans(nstm),3))
+
+i <- 1
+nstm2 <- c(1:11)
+while(i <= 11){
+nstm2[i] <- sd(nstm[,i])
+i <- i +1
+}
+nstm1 <- rbind(nstm1,round(nstm2,3))
+rownames(nstm1) <- c('Multipliers', 'Std. Dev.')
+nstm1
+
+pdf("Multipliers.pdf", height =1, width = 10)
+grid.table(nstm1)
+dev.off()
+```
+
+
+```{r}
+
+vars <- seq(1,300)
+
+ys <- 1.008^(vars)
+
+
+
+scratch <- data.frame(x = vars, y = ys)
+
+scratch1 <- data.frame(x=vars, y = snormas^(vars))
+
+
+
+ggplot(scratch,aes(x = x, y = y))+
+  geom_point() +
+  theme_minimal()
+
+ggplot(scratch1,aes(x = x, y = y))+
+  geom_point() +
+  theme_minimal()
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

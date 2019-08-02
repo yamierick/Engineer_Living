@@ -1,0 +1,928 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+```
+
+```{r}
+
+#budget 
+y <- 37823
+#distance from center (miles) vector
+x <- c(0:25)
+#transportation cost 50 cents a mile by 320 days
+t <- 1000
+#housing price per sqft vector
+p <- c(0:25)
+#housing consumption (sqft) by mile vector
+q <- c(0:25)
+#general good
+g <- c(0:25)
+#utility level
+V <- 2702
+#alpha for Cobb Douglas
+al <- .5
+#beta for development cobb-douglas
+bt <- 4/3
+#capital 
+c0 <- 0
+#land acres
+l <- .5
+#interest
+i <- .03
+#land rent/acre
+r <- c(0:25)
+#Housing floor space / acre
+s <- c(0:25)
+#ag rent
+ag <- 8000
+
+#amentiy
+ad <- 0.16
+ng <- 1
+d <- 0
+
+#gamma for amenity
+gm <- 0.5
+
+#z distance to amentiy
+z <- sqrt((x-d)^2)
+
+
+
+
+
+
+
+
+```
+
+
+```{r}
+#monocentric original model parameters
+
+u <- c(1:50)
+v <- c(1:50)
+
+
+
+#new u,v
+
+
+
+NN <- c(1:10)
+
+
+u <- c(0:150)
+v <- c(0:150)
+
+i <- 0
+j <- 0
+ii <- 1
+
+while(i < 151){
+  
+  j <- 0
+  while(j < 151){
+  u[ii] <- i/5 - 15
+  v[ii] <- j/5 - 15
+  j <- j+1
+  ii <- ii+1
+  }
+  
+  i <- i +1
+  
+}
+
+
+V <- 4000
+
+i <- 0
+
+while(i < 11){
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#z distance to amentiy
+z <- sqrt((x-d)^2)
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+
+
+#theta some funciton of beta
+ph <- ((bt-1)^((bt-1)/bt))/bt
+
+#optimal r
+
+r <- (ph*p)^(bt/(bt-1))
+
+r1 <- ((ph*al)^al * (1-al)^(1-al) * (y-t*x)/V)^(bt/(al*(bt-1)))
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+s1 <- (bt-1)^(-1/bt) * (r)^(1/bt)
+
+
+
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (1*1) * 640 * .25  
+#s <- n*q /(1 * 640 * .25 )
+#q <-  s/(n*(1 * 640 * .25 ))
+
+
+
+#Utility Value
+
+U <- q^al*g^(1-al)
+
+dfsc <- data.frame(u,v,x,p,g,q,s,r,U,n)
+
+#delete values where ag rent exceeds land rent
+dfsc1 <- dfsc[(dfsc$r > ag),]
+
+#total population
+NN[i] <- sum(dfsc1$n)
+
+V <- V + 50
+
+i <- i + 1
+
+}
+
+
+
+
+
+
+
+
+
+
+dfsc1
+
+
+
+nrow(dfsc1$n)
+sum(dfsc1$n)
+
+NN
+
+
+
+
+```
+
+
+```{r}
+#modfied parameters
+
+#budget 
+#median income per capita Austin https://www.deptofnumbers.com/income/texas/austin/
+y <- 37823
+
+u <- c(0:150)
+v <- c(0:150)
+
+i <- 0
+j <- 0
+ii <- 1
+
+while(i < 151){
+  
+  j <- 0
+  while(j < 151){
+  u[ii] <- i/5 - 15
+  v[ii] <- j/5 - 15
+  j <- j+1
+  ii <- ii+1
+  }
+  
+  i <- i +1
+  
+}
+
+#distance from center
+x <- sqrt(u^2+v^2)
+
+#transportation cost 50 cents a mile by 320 days
+t <- 1000
+#housing price per sqft vector
+p <- c(0:150)
+#housing consumption (sqft) by mile vector
+q <- c(0:150)
+#general good
+g <- c(0:150)
+#utility level
+V <- 3750
+#alpha for Cobb Douglas
+al <- .5
+#beta for development cobb-douglas
+bt <- 4/3
+#capital 
+c0 <- 0
+
+#amentiy
+ad <- 0.16
+ng <- 1
+d <- 0
+
+#gamma for amenity
+gm <- 0.5
+
+#z distance to amentiy
+z <- sqrt((x-d)^2)
+
+#land rent/acre
+r <- c(0:150)
+#Housing floor space / acre
+s <- c(0:150)
+#ag rent
+#Ausitn is about 8000 https://heritagelandbank.com/announcements/news-events/how-much-average-price-land-texas
+ag <- 8000
+
+```
+
+```{r}
+#monocentric with modified V
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+
+#new u,v
+
+
+
+t <- 1000
+
+
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#finding distance to rail
+z <- sqrt((x-d)^2)
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+
+#theta some funciton of beta
+ph <- ((bt-1)^((bt-1)/bt))/bt
+
+#optimal r
+
+r <- (ph*p)^(bt/(bt-1))
+
+r1 <- ((ph*al)^al * (1-al)^(1-al) * (y-t*x)/V)^(bt/(al*(bt-1)))
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+s1 <- (bt-1)^(-1/bt) * (r)^(1/bt)
+
+#Utility Value
+
+U <- q^al*g^(1-al)
+
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+nn <- s/q
+
+
+
+dfscm <- data.frame(u,v,t,x,p,g,q,s,r,U,n,nn)
+
+#delete values where ag rent exceeds land rent
+dfscm1 <- dfscm[(dfscm$r > ag),]
+
+dfscm1
+
+#Total Land Area of the City
+
+print('Land Area')
+nrow(dfscm1)*(.2*.2)
+
+max(dfscm1$u)
+max(dfscm1$v)
+
+
+
+#Total Population
+
+print('Population')
+round(sum(dfscm1$n),0)
+
+
+
+
+
+
+p1<-ggplot(dfscm1, aes(x = u, y = v, color = n)) +
+   geom_point(size = 2, shape = 7) +
+  
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-15,15),y=c(-15,15)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Moncentric Model')
+
+
+```
+
+```{r}
+#monocentric with modified V
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+
+#new u,v
+
+
+
+t <- c(0:150)
+
+idf <- data.frame(u,v,t)
+
+ii <- 1
+while(ii < nrow(idf)+1){
+
+
+
+if(idf$u[ii]<3 & idf$u[ii] > -3 & idf$v[ii] < 3 | idf$u[ii]<3 & idf$u[ii] > -3 & idf$v[ii] > -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 4.5 * 2 * 300 * 0.15
+  }
+if(idf$u[ii]<=3 & idf$u[ii] >= -3 & idf$v[ii] >= 3 | idf$u[ii]<=3 & idf$u[ii] >= -3 & idf$v[ii] <= -5 ){
+  # (2,10) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 11.17 * 2 * 300 * 0.15
+  }
+if(idf$u[ii] >= 3  & idf$v[ii] >= 3 | idf$v[ii] >= 3 & idf$u[ii] <= -3 ){
+  # (1,3) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 16 * 2 * 300 * 0.15
+  
+}
+
+if(idf$u[ii] <= -3 & idf$v[ii] <= -3 | idf$u[ii] >= 3 & idf$v[ii] <= -3 ){
+  # (8,11) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 16.67 * 2 * 300 * 0.15
+  }
+
+if(idf$u[ii] >= 3  & idf$v[ii] <= 3 & idf$v[ii] >= -3 | idf$v[ii] <= 3 & idf$v[ii] >= -3 & idf$u[ii] <= -3 ){
+  # (4,7) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 11.67 * 2 * 300 * 0.15
+  
+}
+if(idf$u[ii] <= 3 & idf$u[ii] >= -3 & idf$v[ii] <= -3 & idf$v[ii] >= -5 ){
+  # (9) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- 9.83 * 2 * 300 * 0.15
+}
+ii <- ii + 1  
+  
+}
+
+
+t <- idf$t
+
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#finding distance to rail
+z <- sqrt((x-d)^2)
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+
+#theta some funciton of beta
+ph <- ((bt-1)^((bt-1)/bt))/bt
+
+#optimal r
+
+r <- (ph*p)^(bt/(bt-1))
+
+r1 <- ((ph*al)^al * (1-al)^(1-al) * (y-t*x)/V)^(bt/(al*(bt-1)))
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+s1 <- (bt-1)^(-1/bt) * (r)^(1/bt)
+
+#Utility Value
+
+U <- q^al*g^(1-al)
+
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+nn <- s/q
+
+
+
+dfscm <- data.frame(u,v,t,x,p,g,q,s,r,U,n,nn)
+
+#delete values where ag rent exceeds land rent
+dfscm2 <- dfscm[(dfscm$r > ag),]
+
+dfscm2
+
+#Total Land Area of the City
+
+print('Land Area')
+nrow(dfscm2)*(.2*.2)
+
+max(dfscm2$u)
+max(dfscm2$v)
+
+
+
+#Total Population
+
+print('Population')
+round(sum(dfscm2$n),0)
+
+
+
+
+
+
+p2<-ggplot(dfscm2, aes(x = u, y = v, color = n)) +
+   geom_point(size = 2, shape = 7) +
+  
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Estimated Travel Time \n Monomodal Work')
+
+
+```
+
+```{r}
+#monocentric with modified V
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+require(tictoc)
+
+#new u,v
+
+setTimeLimit(30)
+
+t <- rep(1000,151)
+
+idf <- data.frame(u,v,t)
+
+ii <- 1
+
+tic("Loop")
+
+while(ii <= nrow(idf)){
+setTimeLimit(300)
+   
+  
+  #Sector 1
+if(idf$u[ii]<= -3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- traveltimes[1] * 2 * 300 * 0.15
+}
+
+  #Sector 2
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- traveltimes[2] * 2 * 300 * 0.15
+}  
+  
+    #Sector 3
+if(idf$u[ii]>= 3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[3] * 2 * 300 * 0.15
+}
+  
+    #Sector 4
+if(idf$u[ii]<= -3 & idf$v[ii] >= -3 & idf$v[ii] <= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[4] * 2 * 300 * 0.15
+}
+  
+#Sector 5
+if(idf$u[ii]< 3 & idf$u[ii] > -3 & idf$v[ii] < 3 & idf$v[ii] >= 0){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[5] * 2 * 300 * 0.15
+}
+  #Sector 6
+if(idf$u[ii]< 3 & idf$u[ii] > -3 & idf$v[ii] < 0 & idf$v[ii] > -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[6] * 2 * 300 * 0.15
+}
+  
+    #Sector 7
+if(idf$u[ii] >= 3 & idf$v[ii] >= -3 & idf$v[ii] <= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[7] * 2 * 300 * 0.15
+}
+
+    #Sector 8
+if(idf$u[ii]<= -3 & idf$v[ii] <= -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[8] * 2 * 300 * 0.15
+}  
+ #Sector 9
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] <= -3 & idf$v[ii] >= -5){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[9] * 2 * 300 * 0.15
+}
+  #Sector 10
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] <= -5){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[10] * 2 * 300 * 0.15
+} 
+  
+      #Sector 11
+if(idf$u[ii] >= 3 & idf$v[ii] <= -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[11] * 2 * 300 * 0.15
+}
+  
+ii <- ii + 1
+if(ii == 1000){print(ii)}
+if(ii == 5000){print(ii)}
+if(ii == 10000){print(ii)}
+if(ii == 15000){print(ii)}
+if(ii == 20000){print(ii)}
+}
+
+toc()
+
+t <- idf$t
+
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#finding distance to rail
+z <- sqrt((x-d)^2)
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+
+#theta some funciton of beta
+ph <- ((bt-1)^((bt-1)/bt))/bt
+
+#optimal r
+
+r <- (ph*p)^(bt/(bt-1))
+
+r1 <- ((ph*al)^al * (1-al)^(1-al) * (y-t*x)/V)^(bt/(al*(bt-1)))
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+s1 <- (bt-1)^(-1/bt) * (r)^(1/bt)
+
+#Utility Value
+
+U <- q^al*g^(1-al)
+
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+nn <- s/q
+
+
+
+dfscm <- data.frame(u,v,t,x,p,g,q,s,r,U,n,nn)
+
+#delete values where ag rent exceeds land rent
+dfscm3 <- dfscm[(dfscm$r > ag),]
+
+dfscm3
+
+#Total Land Area of the City
+
+print('Land Area')
+nrow(dfscm3)*(.2*.2)
+
+max(dfscm3$u)
+max(dfscm3$v)
+
+
+
+#Total Population
+
+print('Population')
+round(sum(dfscm3$n),0)
+
+
+
+
+
+
+p3 <- ggplot(dfscm3, aes(x = u, y = v, color = n)) +
+   geom_point(size = 2, shape = 7) +
+  
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-15,15),y=c(-15,15)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'No Traffic \n Multimodal Work')
+
+
+```
+
+
+```{r}
+#Creating All Plots
+#monocentric with modified V
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+require(tictoc)
+
+#new u,v
+
+setTimeLimit(30)
+
+t <- rep(1000,151)
+
+idf <- data.frame(u,v,t)
+
+ii <- 1
+
+tic("Loop")
+
+while(ii <= nrow(idf)){
+setTimeLimit(300)
+   
+  
+  #Sector 1
+if(idf$u[ii]<= -3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- traveltimes[1] * 2 * 300 * 0.15 * nstm[1,1]
+}
+
+  #Sector 2
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+  idf$t[ii] <- traveltimes[2] * 2 * 300 * 0.15 * nstm[1,2]
+}  
+  
+    #Sector 3
+if(idf$u[ii]>= 3 & idf$v[ii] >= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[3] * 2 * 300 * 0.15 * nstm[1,3]
+}
+  
+    #Sector 4
+if(idf$u[ii]<= -3 & idf$v[ii] >= -3 & idf$v[ii] <= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[4] * 2 * 300 * 0.15 * nstm[1,4]
+}
+  
+#Sector 5
+if(idf$u[ii]< 3 & idf$u[ii] > -3 & idf$v[ii] < 3 & idf$v[ii] >= 0){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[5] * 2 * 300 * 0.15 * nstm[1,5]
+}
+  #Sector 6
+if(idf$u[ii]< 3 & idf$u[ii] > -3 & idf$v[ii] < 0 & idf$v[ii] > -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[6] * 2 * 300 * 0.15 * nstm[1,6]
+}
+  
+    #Sector 7
+if(idf$u[ii] >= 3 & idf$v[ii] >= -3 & idf$v[ii] <= 3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[7] * 2 * 300 * 0.15 * nstm[1,7]
+}
+
+    #Sector 8
+if(idf$u[ii]<= -3 & idf$v[ii] <= -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[8] * 2 * 300 * 0.15 * nstm[1,8]
+}  
+ #Sector 9
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] <= -3 & idf$v[ii] >= -5){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[9] * 2 * 300 * 0.15 * nstm[1,9]
+}
+  #Sector 10
+if(idf$u[ii]<= 3 & idf$u[ii] >= -3 & idf$v[ii] <= -5){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[10] * 2 * 300 * 0.15 * nstm[1,10]
+} 
+  
+      #Sector 11
+if(idf$u[ii] >= 3 & idf$v[ii] <= -3){
+  # (5,6) 4.5 mins to center/trip * 2 trips/day * 300 travel days/yr * $0.50 /min
+   idf$t[ii] <- traveltimes[11] * 2 * 300 * 0.15 * nstm[1,11]
+}
+  
+ii <- ii + 1
+if(ii == 1000){print(ii)}
+if(ii == 5000){print(ii)}
+if(ii == 10000){print(ii)}
+if(ii == 15000){print(ii)}
+if(ii == 20000){print(ii)}
+}
+
+toc()
+
+t <- idf$t
+
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#finding distance to rail
+z <- sqrt((x-d)^2)
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+
+#theta some funciton of beta
+ph <- ((bt-1)^((bt-1)/bt))/bt
+
+#optimal r
+
+r <- (ph*p)^(bt/(bt-1))
+
+r1 <- ((ph*al)^al * (1-al)^(1-al) * (y-t*x)/V)^(bt/(al*(bt-1)))
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+s1 <- (bt-1)^(-1/bt) * (r)^(1/bt)
+
+#Utility Value
+
+U <- q^al*g^(1-al)
+
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+nn <- s/q
+
+
+
+dfscm <- data.frame(u,v,t,x,p,g,q,s,r,U,n,nn)
+
+#delete values where ag rent exceeds land rent
+dfscm4 <- dfscm[(dfscm$r > ag),]
+
+dfscm4
+
+#Total Land Area of the City
+
+print('Land Area')
+nrow(dfscm4)*(.2*.2)
+
+max(dfscm4$u)
+max(dfscm4$v)
+
+
+
+#Total Population
+
+print('Population')
+round(sum(dfscm4$n),0)
+
+
+
+
+
+
+p4 <- ggplot(dfscm4, aes(x = u, y = v, color = n)) +
+   geom_point(size = 2, shape = 7) +
+  
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Traffic Interactions \n Multimodal Work')
+
+
+```
+
+```{r}
+# Displaying all graphs and Saving All Graphs
+
+
+
+
+#Population Density Across Urban Areas
+pop_den <- grid.arrange(p2,p4,p1,p3, ncol=2, nrow = 2)
+
+
+ggsave(filename = "pop_den.pdf", pop_den)
+
+
+#Land and Population Table
+
+lnda <- c(nrow(dfscm1)*(0.2*0.2),nrow(dfscm2)*(0.2*0.2),nrow(dfscm3)*(0.2*0.2),nrow(dfscm4)*(0.2*0.2))
+popg <- c(sum(dfscm1$n),sum(dfscm2$n),sum(dfscm3$n),sum(dfscm4$n))
+lap <- data.frame(Land_Area = lnda, Population = round(popg), Population_Density = round(popg/lnda))
+rownames(lap) <- c('Monocentric', 'Estimated Monomodal Work', 'No Traffic Multimodal', 'Traffic Multimodal')
+lap
+
+pdf("land_pop.pdf", height =2, width = 8.5)
+grid.table(lap)
+dev.off()
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

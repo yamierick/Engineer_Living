@@ -1,0 +1,1709 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+```{r}
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+require(tictoc)
+```
+
+```{r}
+#Set job locations
+
+
+
+set.seed(50)
+#population
+N <- 100000
+
+#arrivals per 5 minutes
+lbda <- c(21,28,21,28,28,28,28,21,17,17,21)
+
+lbda <- lbda*N/100000
+
+
+#Destinations
+dstn1 <- c(0.24, 0.1, 0.06, 0.10, 0.1, 0.1, 0.06, 0.06, 0.06, 0.06, 0.06) 
+dstn3 <- c(0.06,0.10,0.24,0.06,0.10,0.10,0.10,0.06,0.06,0.06,0.06) 
+dstn8 <- c(0.06,0.06,0.06,0.10,0.10,0.10,0.06,0.24,0.05,0.05,0.06) 
+dstn11 <- c(0.06,0.06,0.06,0.06,0.10,0.10,0.10,0.06,0.05,0.05,0.24) 
+
+
+dstn5 <- c(0.05,0.05,0.05,0.05,0.3,0.25,0.05,0.05,0.05,0.05,0.05)
+dstn6 <- c(0.05,0.05,0.05,0.05,0.25,0.3,0.05,0.05,0.05,0.05,0.05)
+
+dstn9 <- c(0.06,0.06,0.06,0.06,0.15,0.15,0.06,0.1,0.1,0.1,0.1)
+dstn10 <- c(0.06,0.06,0.06,0.06,0.15,0.15,0.06,0.1,0.1,0.1,0.1)
+
+dstn2 <- c(0.1, 0.24, 0.1, 0.06, 0.1, 0.1, 0.06, 0.06, 0.06, 0.06, 0.06) 
+dstn4 <- c(0.1,0.06,0.06,0.24,0.10,0.10,0.06,0.1,0.06,0.06,0.06) 
+dstn7 <- c(0.06,0.06,0.1,0.06,0.10,0.10,0.24,0.06,0.06,0.06,0.10)
+
+destndf <- as.data.frame(rbind(dstn1,dstn2,dstn3, dstn4, dstn5, dstn6, dstn7, dstn8, dstn9, dstn10, dstn11))
+
+destndf
+
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+
+
+
+
+dflist <- c(1:36)
+
+# i <- 1
+# 
+# while(i <= 36){
+# 
+#  x <- data.frame(x = c(1:10), y = c(1:10))
+#  dflist[i] <- x
+# assign( paste("t",i,"i1",sep =""),dflist[i])
+# 
+#  i <- i + 1
+# }
+
+
+j <- 1
+
+
+
+while (j <= 11){ 
+
+
+dflist0 <- lapply(dflist, function(w) { 
+  
+arvl <- c(1:11)
+
+
+
+i <- 1
+while (i <= 11){
+  arvl[i] <- rpois(1,lbda[i])
+  i <- i + 1
+}
+
+
+
+
+
+uni1 <- runif(arvl[j])
+
+dn1 <- c(1:length(uni1))
+
+nxt <- rep(0,length(uni1))
+
+tnxt <- rep(0,length(uni1))
+
+# Destinations for the arrivals in City Part 1
+if (j == 1){
+nxt <- rep(12,length(uni1))
+tnxt <- rep(2*65/60, length(uni1))
+}
+
+
+
+if (j == 3){
+nxt <- rep(13,length(uni1))
+tnxt <- rep(2*65/60, length(uni1))
+}
+
+if (j == 4){
+nxt <- rep(14,length(uni1))
+tnxt <- rep(2*45/60, length(uni1))
+}
+
+
+
+if (j == 7){
+nxt <- rep(16,length(uni1))
+tnxt <- rep(2*45/60, length(uni1))
+}
+
+if (j == 8){
+nxt <- rep(17,length(uni1))
+tnxt <- rep(2*65/60, length(uni1))
+}
+
+
+if (j == 10){
+nxt <- rep(18,length(uni1))
+tnxt <- rep(2*45/60, length(uni1))
+}
+
+if (j == 11){
+nxt <- rep(19,length(uni1))
+tnxt <- rep(2*65/60, length(uni1))
+}
+  
+
+
+i <- 1
+
+
+while (i <= length(uni1)){
+  
+  if (uni1[i] < destndf[j,1]){
+    dn1[i] <- j
+    nxt[i] <- 0
+    tnxt[i] <- 0
+    
+    
+    
+  }
+  if (destndf[j,1]<= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]) ) {
+    dn1[i] <- 2
+   
+    
+  }
+   if ( (destndf[j,1]+destndf[j,2]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]) ){
+    dn1[i] <- 3
+   
+    
+   }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]) ){
+    dn1[i] <- 4
+   
+  
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]) ){
+    dn1[i] <- 5
+    
+    
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]) ){
+    dn1[i] <- 6
+   
+    
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]) ){
+    dn1[i] <- 7
+    
+    
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]) ){
+    dn1[i] <- 8
+    
+    
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]) <= uni1[i] & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]+destndf[j,9]) ){
+    dn1[i] <- 9
+    
+    
+  }
+  if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]+destndf[j,9]) <= uni1[i] 
+       & uni1[i] < (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]+destndf[j,9]+destndf[j,10]) ){
+    dn1[i] <- 10
+    
+    
+  }
+ if ( (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]+destndf[j,9]+destndf[j,10]) <= uni1[i] 
+       & uni1[i] <= (destndf[j,1]+destndf[j,2]+destndf[j,3]+destndf[j,4]+destndf[j,5]+destndf[j,6]+destndf[j,7]+destndf[j,8]+destndf[j,9]+destndf[j,10]+destndf[j,11]) ){
+    dn1[i] <- 11
+   
+    
+ }
+
+  if (j == 2){
+ if(dn1[(i)] == 5 | dn1[(i)] == 6 | dn1[(i)] == 9 | dn1[(i)] == 10 ){
+    nxt[i] <- 5
+    tnxt[i] <- 3.5*45/60
+ 
+  }
+  if(dn1[i] == 1 | dn1[i] == 4 | dn1[i] == 8){
+    nxt[i] <- 12
+    tnxt[i] <- 3*65/60
+   
+  }
+  if(dn1[i] == 3 | dn1[i] == 7 | dn1[i] == 11){
+    nxt[i] <- 13
+    tnxt[i] <- 3*65/60
+    
+  }
+  }
+if (j == 5){
+  if( dn1[i] == 1 | dn1[i] == 2 | dn1[i] == 3 ){
+    nxt[i] <- 2
+    tnxt[i] <- 3.5*45/60
+   
+  }
+ 
+  if(dn1[i] == 4 | dn1[i] == 11 | dn1[i] == 6 | dn1[i] == 7 | dn1[i] == 8 | dn1[i] == 9 | dn1[i] == 10){
+    nxt[i] <- 15
+    tnxt[i] <- 1.5*45/60
+   
+  }
+  
+}
+  
+
+if (j == 6){
+  if( dn1[i] == 9 | dn1[i] == 10 | dn1[i] == 11 | dn1[i] == 8){
+    nxt[i] <- 9
+    tnxt[i] <- 3.5*45/60
+  
+  }
+ 
+ if(dn1[i] == 1 | dn1[i] == 2 | dn1[i] == 3 | dn1[i] == 4 | dn1[i] == 5 |  dn1[i] == 7){
+    nxt[i] <- 15
+    tnxt[i] <- 1.5*45/60
+ 
+  }
+}  
+  
+
+  if (j == 9){
+  if( dn1[i] == 6 | dn1[i] == 5 | dn1[i] == 2 ){
+    nxt[i] <- 6
+    tnxt[i] <- 3.5*45/60
+    
+  }
+ 
+  if(dn1[i] == 1 | dn1[i] == 3 | dn1[i] == 4 | dn1[i] == 7 | dn1[i] == 8 | dn1[i] == 10 | dn1[i] == 11){
+    nxt[i] <- 18
+    tnxt[i] <- 1.5*45/60
+    
+  }
+} 
+
+i <- i + 1
+
+}
+
+
+
+  w <- data.frame( car = c(1:length(uni1)), destination = dn1, pt2 = nxt, pt2_time = tnxt, pt3 = rep(0,length(uni1)), pt3_time = rep(0,length(uni1)),
+     pt4 = rep(0,length(uni1)), pt4_time = rep(0,length(uni1)), pt5 = rep(0,length(uni1)), pt5_time = rep(0,length(uni1)), pt6 = rep(0,length(uni1)), pt6_time = rep(0,length(uni1)),
+     pt7 = rep(0,length(uni1)), pt8_time = rep(0,length(uni1)), pt9 = rep(0,length(uni1)), pt9_time = rep(0,length(uni1)), pt10 = rep(0,length(uni1)), pt10_time = rep(0,length(uni1)))
+
+  
+}
+)
+
+i <- 1
+
+while(i <= 36){
+
+  x <- as.data.frame(dflist0[i])
+  assign( paste("t",i,"i",j,sep =""),x)
+  i <- i + 1
+  
+}
+
+
+
+j <- j +1
+print(j)
+
+}
+
+
+
+
+
+```
+
+
+```{r}
+
+#tic("Organizing Dataframes")
+
+dflist1 <- list(t1i1,t2i1,t3i1,t4i1,t5i1,t6i1,t7i1,t8i1,t9i1,t10i1,t11i1,t12i1,t13i1,t14i1,t15i1,t16i1,t17i1,t18i1,t19i1,t20i1,t21i1,t22i1,t23i1,t24i1,
+                t25i1,t26i1,t27i1,t28i1,t29i1,t30i1,t31i1,t32i1,t33i1,t34i1,t35i1,t36i1)
+dflist2 <- lapply(ls(pattern="t[0-9]+i2"), function(x) get(x))
+dflist3 <- lapply(ls(pattern="t[0-9]+i3"), function(x) get(x))
+dflist4 <- lapply(ls(pattern="t[0-9]+i4"), function(x) get(x))
+dflist5 <- lapply(ls(pattern="t[0-9]+i5"), function(x) get(x))
+dflist6 <- lapply(ls(pattern="t[0-9]+i6"), function(x) get(x))
+dflist7 <- lapply(ls(pattern="t[0-9]+i7"), function(x) get(x))
+dflist8 <- lapply(ls(pattern="t[0-9]+i8"), function(x) get(x))
+dflist9 <- lapply(ls(pattern="t[0-9]+i9"), function(x) get(x))
+dflist10 <- lapply(ls(pattern="t[0-9]+i10"), function(x) get(x))
+dflist11 <- lapply(ls(pattern="t[0-9]+i11"), function(x) get(x))
+
+dflist <- list(dflist1,dflist2,dflist3,dflist4,dflist5,dflist6,dflist7,dflist8,dflist9,dflist10,dflist11)
+
+
+#toc()
+```
+
+```{r}
+
+#tic("Calculating Paths")
+
+
+#Loop and store around these values
+nxt <- 0
+tnxt <- 0
+k <- 1
+
+while(k <= 11){
+
+if (k == 1){dfloop <- dflist1}
+if (k == 2){dfloop <- dflist2}
+if (k == 3){dfloop <- dflist3}
+if (k == 4){dfloop <- dflist4}
+if (k == 5){dfloop <- dflist5}
+if (k == 6){dfloop <- dflist6}
+if (k == 7){dfloop <- dflist7}
+if (k == 8){dfloop <- dflist8}
+if (k == 9){dfloop <- dflist9}
+if (k == 10){dfloop <- dflist10}
+if (k == 11){dfloop <- dflist11}
+
+
+
+dfloop <- lapply(dfloop, function(w) { 
+  
+  
+
+j <- 3
+
+while(j < 16){
+ 
+   i <- 1
+  
+while(i <= nrow(w)){
+  
+point <- w[i,j]
+destination <- w$destination[i]
+
+
+
+
+
+#Logic for 0
+if(point == 0){
+  nxt <- 0
+  tnxt <- 0
+  i <- i + 1
+  
+}
+
+#Logic at point 1
+
+if(point == 1){
+  if(destination == 1){
+   nxt <- 0
+    tnxt <- 0
+  }
+  if(destination == 11 | destination == 2 | destination == 3 | destination == 4 | destination == 5 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 12
+    tnxt <- 2*65/60
+  }
+  i <- i +1
+}
+
+#Logic at point 2
+
+if(point == 2){
+  if(destination == 2){
+   nxt <- 0
+    tnxt <- 0
+  }
+  if(destination == 5 | destination == 6 | destination == 9 | destination == 10 ){
+    nxt <- 5
+    tnxt <- 3.5*45/60
+  }
+  if(destination == 1 | destination == 4 | destination == 8){
+    nxt <- 12
+    tnxt <- 3*65/60
+  }
+  if(destination == 3 | destination == 7 | destination == 11){
+    nxt <- 13
+    tnxt <- 3*65/60
+  }
+  i <- i + 1
+  
+}
+
+#Logic at point 3
+
+if(point == 3){
+  if(destination == 3){
+   nxt <- 0
+    tnxt <- 0
+  }
+  if(destination == 1 | destination == 2 | destination == 11 | destination == 4 | destination == 5 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 13
+    tnxt <- 2*65/60
+  }
+  i <- i +1
+}
+
+#Logic at point 4
+
+if(point == 4){
+  if(destination == 4){
+   nxt <- 0
+    tnxt <- 0
+  }
+  if(destination == 1 | destination == 2 | destination == 3 | destination == 11 | destination == 5 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 14
+    tnxt <- 2*45/60
+  }
+  i <- i +1
+}
+
+# Logic at Point 5
+
+if(point == 5){
+  if(destination == 5){
+    nxt <- 0
+    tnxt <- 0
+    }
+  if( destination == 1 | destination == 2 | destination == 3 ){
+    nxt <- 2
+    tnxt <- 3.5*45/60
+  }
+ 
+  if(destination == 4 | destination == 11 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 15
+    tnxt <- 1.5*45/60
+  }
+  i <- i + 1
+  
+}
+
+# Logic at Point 6
+
+if(point == 6){
+  if(destination == 6){
+    nxt <- 0
+    tnxt <- 0
+  }
+  if( destination == 9 | destination == 10 | destination == 11 | destination == 8){
+    nxt <- 9
+    tnxt <- 3.5*45/60
+  }
+ 
+ if(destination == 1 | destination == 2 | destination == 3 | destination == 4 | destination == 5 |  destination == 7){
+    nxt <- 15
+    tnxt <- 1.5*45/60
+  }
+  i <- i + 1
+  
+}
+
+
+#Logic at point 7
+
+if(point == 7){
+  if(destination == 7){
+   nxt <- 0
+    tnxt <- 0
+  }
+if(destination == 1 | destination == 2 | destination == 3 | destination == 4 | destination == 5 | destination == 6 | destination == 11 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 16
+    tnxt <- 2*45/60
+  }
+  i <- i +1
+}
+
+#Logic at point 8
+
+if(point == 8){
+  if(destination == 8){
+   nxt <- 0
+    tnxt <- 0
+  }
+ if(destination == 1 | destination == 2 | destination == 3 | destination == 4 | destination == 5 | destination == 6 | destination == 7 | destination == 11 | destination == 9 | destination == 10){
+    nxt <- 17
+    tnxt <- 2*65/60
+  }
+  i <- i +1
+}
+
+# Logic at Point 9
+
+if(point == 9){
+  if(destination == 9){
+   nxt <- 0
+   tnxt <- 0
+  }
+  if( destination == 6 | destination == 5 | destination == 2 ){
+    nxt <- 6
+    tnxt <- 3.5*45/60
+  }
+ 
+if(destination == 1 | destination == 3 | destination == 4 | destination == 7 | destination == 8 | destination == 10 | destination == 11){
+    nxt <- 18
+    tnxt <- 1.5*45/60
+  }
+  i <- i + 1
+  
+}
+
+# Logic at Point 10
+
+if(point == 10){
+  if(destination == 10){
+    nxt <- 0
+    tnxt <- 0
+     }
+  
+if(destination == 1 | destination == 2 | destination == 3 | destination == 4 | destination == 5 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 11){
+    nxt <- 18
+    tnxt <- 1.5*45/60
+  }
+  i <- i + 1
+  
+}
+
+#Logic at point 11
+
+if(point == 11){
+  if(destination == 11){
+   nxt <- 0
+    tnxt <- 0
+  }
+   if(destination == 1 | destination == 2 | destination == 3 | destination == 4 | destination == 5 | destination == 6 | destination == 7 | destination == 8 | destination == 9 | destination == 10){
+    nxt <- 19
+    tnxt <- 2*65/60
+  }
+  i <- i +1
+}
+
+#Logic at Point 12
+
+if(point == 12){
+  if (destination == 1){
+    nxt <- 1
+    tnxt <- 2*65/60
+  }
+  if(destination == 2 | destination == 3 | destination == 7 | destination == 11 ){
+    nxt <- 2
+    tnxt <- 3*65/60
+  }
+ if(destination == 4 | destination == 5 | destination == 6 | destination == 8 | destination == 9 | destination == 10 ){
+    nxt <- 14
+    tnxt <- 5*65/60
+  }
+  i <- i + 1
+  
+ 
+}
+
+#Logic at Point 13
+
+if(point == 13){
+  if (destination == 3){
+    nxt <- 3
+    tnxt <- 2*65/60
+  }
+  if(destination == 2 | destination == 1 | destination == 4 | destination == 8 ){
+    nxt <- 2
+    tnxt <- 3*65/60
+  }
+  if(destination == 5 | destination == 6 | destination == 7 | destination == 9 | destination == 10 | destination == 11 ){
+    nxt <- 16
+    tnxt <- 5*65/60
+  }
+  i <- i + 1
+  
+}
+
+# Logic at Point 14
+
+if(point == 14){
+  if(destination == 4){
+    nxt <- 4
+    tnxt <- 2*45/60
+  }
+  if( destination == 8 | destination == 9 | destination == 10 | destination == 11){
+    nxt <- 17
+    tnxt <- 5*65/60
+  }
+   if(destination == 1 | destination == 2 | destination == 3){
+    nxt <- 12
+    tnxt <- 5*65/60
+  }
+ 
+  if(destination == 5 | destination == 6 | destination == 7){
+    nxt <- 15
+    tnxt <- 3*45/60
+  }
+  i <- i + 1
+  
+}
+
+# Logic at Point 15
+
+if(point == 15){
+  if(destination == 5 | destination == 2){
+    nxt <- 5
+    tnxt <- 1.5*45/60
+  }
+  if(destination == 6 | destination == 9 | destination == 10){
+    nxt <- 6
+    tnxt <- 1.5*45/60
+  }
+  if( destination == 1 | destination == 4 | destination == 8){
+    nxt <- 14
+    tnxt <- 3*45/60
+  }
+   if( destination == 3 | destination == 7 | destination == 11){
+    nxt <- 16
+    tnxt <- 3*45/60
+  }
+i <- i + 1
+
+}
+
+# Logic at Point 16
+
+if(point == 16){
+  if(destination == 7){
+    nxt <- 7
+    tnxt <- 2*45/60
+  }
+  if( destination == 8 | destination == 9 | destination == 10 | destination == 11){
+    nxt <- 19
+    tnxt <- 5*65/60
+  }
+   if( destination == 1 | destination == 2 | destination == 3){
+    nxt <- 13
+    tnxt <- 5*65/60
+  }
+ 
+  if(destination == 4 | destination == 5 | destination == 6){
+    nxt <- 15
+    tnxt <- 3*45/60
+  }
+  i <- i + 1
+  
+}
+
+#Logic at Point 17
+
+if(point == 17){
+  if (destination == 8){
+    nxt <- 8
+    tnxt <- 2*65/60
+  }
+  if(destination == 9 | destination == 10 | destination == 11 | destination == 7 | destination == 3 ){
+    nxt <- 18
+    tnxt <- 3*65/60
+  }
+  if(destination == 1 | destination == 2 | destination == 4 | destination == 5 | destination == 6){
+    nxt <- 14
+    tnxt <- 5*65/60
+  }
+  i <- i + 1
+  
+}
+
+# Logic at Point 18
+
+if(point == 18){
+  
+  if(destination == 10){
+    nxt <- 10
+    tnxt <- 1.5*45/60
+  }
+  if(destination == 6 | destination == 9 | destination == 5 | destination == 2){
+    nxt <- 9
+    tnxt <- 1.5*45/60
+  }
+  if( destination == 1 | destination == 4 | destination == 8){
+    nxt <- 17
+    tnxt <- 3*65/60
+  }
+   if( destination == 3 | destination == 7 | destination == 11){
+    nxt <- 19
+    tnxt <- 3*65/60
+  }
+i <- i + 1
+
+}
+
+#Logic at Point 19
+
+if(point == 19){
+  
+  if (destination == 11){
+    nxt <- 11
+    tnxt <- 2*65/60
+  }
+   if(destination == 9 | destination == 10 | destination == 8 | destination == 4 ){
+    nxt <- 18
+    tnxt <- 3*65/60
+  }
+  if(destination == 1 | destination == 2 | destination == 3 | destination == 5 | destination == 6 | destination == 7){
+    nxt <- 16
+    tnxt <- 5*65/60
+  }
+  i <- i + 1
+  
+}
+
+#Set new values in dataframe
+w[(i-1),(j+2)] <- nxt
+w[(i-1),(j+3)] <- tnxt
+
+}
+   
+j <- j + 2 
+
+}
+
+print(w)
+
+})
+
+if (k == 1){dflist1 <- dfloop}
+if (k == 2){dflist2 <- dfloop}
+if (k == 3){dflist3 <- dfloop}
+if (k == 4){dflist4 <- dfloop}
+if (k == 5){dflist5 <- dfloop}
+if (k == 6){dflist6 <- dfloop}
+if (k == 7){dflist7 <- dfloop}
+if (k == 8){dflist8 <- dfloop}
+if (k == 9){dflist9 <- dfloop}
+if (k == 10){dflist10 <- dfloop}
+if (k == 11){dflist11 <- dfloop}
+
+k <- k + 1
+print(k)
+}
+
+#toc()
+
+```
+
+
+```{r}
+
+#
+traffic0 <- data.frame(time = c(1:36), tf1 = rep(0,36), tf35 = rep(0,36), tf183 = rep(0,36), tflm = rep(0,36), tf8 = rep(0,36), tf290 = rep(0,36))
+
+traffic <- list()
+
+
+
+
+
+
+#setTimeLimit(600)
+  
+# tic("Whole Loop")  
+ 
+z <- 1
+
+while (z <= 11){
+  
+if (z == 1){dfloop <- dflist1}
+if (z == 2){dfloop <- dflist2}
+if (z == 3){dfloop <- dflist3}
+if (z == 4){dfloop <- dflist4}
+if (z == 5){dfloop <- dflist5}
+if (z == 6){dfloop <- dflist6}
+if (z == 7){dfloop <- dflist7}
+if (z == 8){dfloop <- dflist8}
+if (z == 9){dfloop <- dflist9}
+if (z == 10){dfloop <- dflist10}
+if (z == 11){dfloop <- dflist11}
+  
+  j <-1
+  lb <- 0
+ub <- 5
+  
+  
+ 
+
+#Set j to 36
+while(j <= 3){
+  
+  
+  
+#Traffic Variables
+tf1 <- 0
+tf35 <- 0
+tf183 <- 0
+tflm <- 0
+tf8 <- 0
+tf290 <- 0
+
+
+k <- 1
+
+
+while(k <= 36){
+  
+  
+
+  w <- as.data.frame(dfloop[k])
+  
+i <- 1
+
+
+while(i <= nrow(w)){
+  
+  l <- 3
+  
+in1 <- w[i,4] + (k-1)*5
+in2 <- w[i,4]+w[i,6] + (k-1)*5
+in3 <- w[i,4]+w[i,6]+w[i,8] + (k-1)*5
+in4 <- w[i,4]+w[i,6]+w[i,8]+w[i,10] + (k-1)*5
+
+if(w[i,9]==0)
+  {lm <- 5} else{
+
+
+in5 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,12] + (k-1)*5
+in6 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,10]+w[i,12] + (k-1)*5
+in7 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,10] + w[i,12] + w[i,14] + (k-1)*5
+lm <- 15}
+  
+  while(l <= lm){
+
+#Traffic on Mopac
+  
+
+
+
+
+#Logic for Mopac
+l1i1 <- w[i,l] == 12 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14
+
+l1i2 <- w[i,l] == 12 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14
+
+l1i3 <- w[i,l] == 12 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14
+
+  l1i4 <-  w[i,l] == 12 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14
+
+
+#Logic for 35
+ l35i1 <- w[i,l] == 13 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16
+
+ l35i2 <-   w[i,l] == 13 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16
+
+ l35i3 <-    w[i,l] == 13 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16
+ 
+  l35i4 <-   w[i,l] == 13 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16
+
+#Logic for 183
+ 
+ l183i1 <- w[i,l] == 12 & in1 > lb & in1 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 2 
+   
+   l183i2 <- w[i,l] == 12 & in2 > lb & in2 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 2 
+   
+l183i3 <-  w[i,l] == 12 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 2 
+
+ l183i4 <-    w[i,l] == 12 & in4 > lb & in4 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 2 
+
+#Logic for 290
+
+
+l290i1 <-  w[i,l] == 17 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 18 
+   
+l290i2 <-   w[i,l] == 17 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 18 
+   
+   
+l290i3 <-   w[i,l] == 17 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 18 
+
+l290i4 <-    w[i,l] == 17 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 18 
+
+#Logic for Lamar
+llmi1 <- w[i,l] == 2 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 9 
+   
+llmi2 <-    w[i,l] == 2 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 9 
+   
+llmi3 <- w[i,l] == 2 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 9 
+
+   
+llmi4 <-    w[i,l] == 2 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 9 
+   
+#Logic for 8th
+
+ 
+ l8i1 <- w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 15 
+   
+ l8i2 <-  w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 15 
+   
+ l8i3 <-  w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 15 
+ 
+ l8i4 <-   w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 15 
+
+
+
+
+
+
+
+if(w[i,9]==0){
+  
+  if(l1i1 | l1i2 | l1i3 |l1i4 )
+{  tf1 <- tf1 + 1  }
+  
+   if(l35i1 | l35i2 | l35i3 | l35i4 )
+   {tf35 <- tf35 + 1 }
+  
+  if(l183i1 | l183i2 | l183i3 | l183i4 )
+  { tf183 <- tf183 + 1}
+  
+  if(l290i1 | l290i2 | l290i3 | l290i4 )
+  { tf290 <- tf290 + 1}
+  
+   if(llmi1 | llmi2 | llmi3 | llmi4 )
+   { tflm <- tflm + 1}
+  
+   if(l8i1 | l8i2 | l8i3 | l8i4 )
+ { tf8 <- tf8 + 1}
+  
+ 
+  
+  
+} else{
+  
+
+  
+
+  
+  l1i5 <- w[i,l] == 12 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14
+
+l1i6 <- w[i,l] == 12 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14
+
+l1i7 <- w[i,l] == 12 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 12 |
+   w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 17 |
+   w[i,l] == 17 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14
+
+
+
+if(l1i1 | l1i2 | l1i3 | l1i4 | l1i5 | l1i6 | l1i7)
+
+{  tf1 <- tf1 + 1 }
+  
+#Traffic on 35
+  
+
+
+
+
+ l35i5 <-   w[i,l] == 13 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16
+
+ l35i6 <-  w[i,l] == 13 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16
+ l35i7 <-    w[i,l] == 13 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16 |
+    w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 13 |
+    w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 19 |
+    w[i,l] == 19 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16
+
+
+
+
+
+ if(l35i1 | l35i2 | l35i3 | l35i4 | l35i5 | l35i6 | l35i7)
+   {  tf35 <- tf35 + 1 }
+
+ 
+ #Traffic on 183
+ 
+
+
+ l183i5 <-  w[i,l] == 12 & in5 > lb & in5 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 2 
+   
+ l183i6 <-  w[i,l] == 12 & in6 > lb & in6 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 2 
+   
+l183i7 <-   w[i,l] == 12 & in7 > lb & in7 <= ub & w[i,(l+2)] == 2 | 
+   w[i,l] == 2 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 13 |
+   w[i,l] == 2 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 12 |
+   w[i,l] == 13 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 2 
+
+
+
+
+if(l183i1 | l183i2 | l183i3 | l183i4 | l183i5 | l183i6 | l183i7)
+  { tf183 <- tf183 + 1}
+
+#Traffic on 290
+
+   
+   
+
+   
+   
+l290i5 <-    w[i,l] == 17 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 18 
+   
+l290i6 <-    w[i,l] == 17 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 18 
+   
+  
+l290i7  <- w[i,l] == 17 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 18 | 
+   w[i,l] == 18 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 17 |
+   w[i,l] == 18 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 19 |
+   w[i,l] == 19 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 18 
+
+if(l290i1 | l290i2 | l290i3 | l290i4 | l290i5 | l290i6 | l290i7)
+{ tf290 <- tf290 + 1}
+
+#Traffic on Lamar
+
+
+
+   
+llmi5 <-    w[i,l] == 2 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 9 
+   
+llmi6 <-    w[i,l] == 2 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 9 
+   
+ llmi7 <-   w[i,l] == 2 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 5 | 
+   w[i,l] == 5 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 2 |
+   w[i,l] == 5 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 6 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 5 |
+   w[i,l] == 6 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 9 | 
+   w[i,l] == 9 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 6 |
+   w[i,l] == 9 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 10 |
+   w[i,l] == 10 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 9 
+ 
+ if(llmi1 | llmi2 | llmi3 | llmi4 | llmi5 | llmi6 | llmi7)
+ { tflm <- tflm + 1}
+ 
+#Traffic on 8th
+ 
+
+   
+
+   
+l8i5 <-   w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 15 
+   
+l8i6 <-   w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 15 
+   
+l8i7 <-   w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 15 | 
+   w[i,l] == 15 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14 |
+   w[i,l] == 15 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16 |
+   w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 15
+
+ if(l8i1 | l8i2 | l8i3 | l8i4 | l8i5 | l8i6 | l8i7)
+ { tf8 <- tf8 + 1}
+
+  
+#ends else loop
+}
+l <- l + 2
+  # end of l loop
+}
+  
+  
+#end if loops for i loop
+  
+  
+i <- i + 1 
+}
+
+
+k <- k + 1
+}
+
+#end of k loop
+
+
+
+
+
+
+
+
+# end of j loop
+time <- j*5
+
+traffic0[j,] <- c(time, tf1, tf35, tf183, tflm, tf8, tf290)
+
+
+
+j <- j + 1
+lb <- lb + 5
+ub <- lb + 5
+
+
+print(j)
+
+
+
+}
+
+if (z == 1){dflist1 <- dfloop}
+if (z == 2){dflist2 <- dfloop}
+if (z == 3){dflist3 <- dfloop}
+if (z == 4){dflist4 <- dfloop}
+if (z == 5){dflist5 <- dfloop}
+if (z == 6){dflist6 <- dfloop}
+if (z == 7){dflist7 <- dfloop}
+if (z == 8){dflist8 <- dfloop}
+if (z == 9){dflist9 <- dfloop}
+if (z == 10){dflist10 <- dfloop}
+if (z == 11){dflist11 <- dfloop}
+  
+  
+traffic <- c(traffic,list(traffic0))
+  
+  
+  z <- z + 1
+  print(z)
+
+
+  
+}  
+# toc()
+
+
+
+
+
+
+```
+
+```{r}
+traffic
+sims <- list(traffic)
+sims
+
+
+```
+
+
+```{r}
+
+# # Original Loop Calcs
+# 
+# traffic1 <- data.frame(time = c(1:36), tf1 = rep(0,36), tf35 = rep(0,36), tf183 = rep(0,36), tflm = rep(0,36), tf8 = rep(0,36), tf290 = rep(0,36))
+# 
+# j <- 1
+# lb <- 0
+# ub <- 5
+# 
+# 
+# 
+# setTimeLimit(240)
+#   
+# tic("Whole Loop")  
+#   
+# 
+# #Set j to 36
+# while(j <= 3){
+#   
+# #Traffic Variables
+# tf1 <- 0
+# tf35 <- 0
+# tf183 <- 0
+# tflm <- 0
+# tf8 <- 0
+# tf290 <- 0
+# 
+# 
+# k <- 1
+# 
+# tic("k loop")
+# while(k <= 36){
+# 
+#   w <- as.data.frame(dflist2[k])
+#   
+# i <- 1
+# 
+# 
+# while(i <= nrow(w)){
+#   
+#   l <- 3
+# 
+#   in1 <- w[i,4] + (k-1)*5
+# in2 <- w[i,4]+w[i,6] + (k-1)*5
+# in3 <- w[i,4]+w[i,6]+w[i,8] + (k-1)*5
+#   in4 <- w[i,4]+w[i,6]+w[i,8]+w[i,10] + (k-1)*5
+# in5 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,12] + (k-1)*5
+# in6 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,10]+w[i,12] + (k-1)*5
+# in7 <- w[i,4]+w[i,6]+w[i,8]+w[i,10]+w[i,10] + w[i,12] + w[i,14] + (k-1)*5
+# 
+#   while(l <= 15){
+# 
+# #1
+# 
+# if(w[i,l] == 12 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14 |
+# 
+#    w[i,l] == 12 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14 |
+# 
+#   w[i,l] == 12 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14 |
+# 
+#    w[i,l] == 12 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14 |
+# 
+#   w[i,l] == 12 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14 |
+# 
+#   w[i,l] == 12 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14 |
+# 
+#   w[i,l] == 12 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 12 |
+#    w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 17 |
+#    w[i,l] == 17 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14
+# 
+#    )
+# {
+# 
+#   tf1 <- tf1 + 1
+# 
+# }
+# 
+# 
+# # 35
+# 
+# if(w[i,l] == 13 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16 |
+#    
+#    w[i,l] == 13 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16 | 
+#    w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 13 |
+#    w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16 
+#    ){
+#   
+#   tf35 <- tf35 + 1
+#   
+# } 
+# 
+#  #Traffic on 183
+#   
+# if(w[i,l] == 12 & in1 > lb & in1 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in2 > lb & in2 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in4 > lb & in4 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in5 > lb & in5 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in6 > lb & in6 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 2 |
+#    
+#    w[i,l] == 12 & in7 > lb & in7 <= ub & w[i,(l+2)] == 2 | 
+#    w[i,l] == 2 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 13 |
+#    w[i,l] == 2 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 12 |
+#    w[i,l] == 13 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 2 
+#    ){
+#   
+#   tf183<- tf183 + 1
+#   
+# }
+# 
+#   #Traffic on 290
+#   
+# if( w[i,l] == 17 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in1 > lb & in1 <= ub  & w[i,(l+2)] == 18 |
+#    
+#     w[i,l] == 17 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in2 > lb & in2 <= ub  & w[i,(l+2)] == 18 |
+#    
+#    
+#     w[i,l] == 17 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in3 > lb & in3 <= ub  & w[i,(l+2)] == 18 |
+#    
+#    
+#     w[i,l] == 17 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in4 > lb & in4 <= ub  & w[i,(l+2)] == 18 |
+#    
+#    
+#     w[i,l] == 17 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in5 > lb & in5 <= ub  & w[i,(l+2)] == 18 |
+#    
+#     w[i,l] == 17 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in6 > lb & in6 <= ub  & w[i,(l+2)] == 18 |
+#    
+#   
+#    w[i,l] == 17 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 18 | 
+#    w[i,l] == 18 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 17 |
+#    w[i,l] == 18 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 19 |
+#    w[i,l] == 19 & in7 > lb & in7 <= ub  & w[i,(l+2)] == 18 
+#    ){
+#   
+#   tf290<- tf290 + 1
+#   
+# }
+# 
+# #Traffic on Lamar
+#   
+# if( w[i,l] == 2 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in1 > lb & in1 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in2 > lb & in2 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in3 > lb & in3 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in4 > lb & in4 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in5 > lb & in5 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in6 > lb & in6 <= ub   & w[i,(l+2)] == 9 |
+#    
+#     w[i,l] == 2 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 5 | 
+#    w[i,l] == 5 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 2 |
+#    w[i,l] == 5 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 6 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 5 |
+#    w[i,l] == 6 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 9 | 
+#    w[i,l] == 9 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 6 |
+#    w[i,l] == 9 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 10 |
+#    w[i,l] == 10 &  in7 > lb & in7 <= ub   & w[i,(l+2)] == 9 
+#    
+# 
+#    ){
+#   
+#   tflm<- tflm + 1
+#   
+# }
+#   
+# 
+# #Traffic on 8th
+# 
+# #add 16 to 7
+# #add 14 to 4
+# #
+#   
+# if(w[i,l] == 14 & in1 > lb & in1 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in1 > lb & in1 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in1 > lb & in1 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in1 > lb & in1 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in2 > lb & in2 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in2 > lb & in2 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in2 > lb & in2 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in2 > lb & in2 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in3 > lb & in3 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in3 > lb & in3 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in3 > lb & in3 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in3 > lb & in3 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in4 > lb & in4 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in4 > lb & in4 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in4 > lb & in4 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in4 > lb & in4 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in5 > lb & in5 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in5 > lb & in5 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in5 > lb & in5 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in5 > lb & in5 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in6 > lb & in6 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in6 > lb & in6 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in6 > lb & in6 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in6 > lb & in6 <= ub & w[i,(l+2)] == 15 |
+#    
+#    w[i,l] == 14 & in7 > lb & in7 <= ub & w[i,(l+2)] == 15 | 
+#    w[i,l] == 15 & in7 > lb & in7 <= ub & w[i,(l+2)] == 14 |
+#    w[i,l] == 15 & in7 > lb & in7 <= ub & w[i,(l+2)] == 16 |
+#    w[i,l] == 16 & in7 > lb & in7 <= ub & w[i,(l+2)] == 15 
+#    ){
+#   
+#   tf8<- tf8 + 1
+#   
+# }
+#     
+#     l <- l + 2
+#   # end of l loop
+# }
+#   
+#   
+# #end if loops for i loop
+#   
+#   
+# i <- i + 1 
+# }
+# 
+# 
+# k <- k + 1
+# }
+# toc()
+# #end of k loop
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # end of j loop
+# time <- j
+# 
+# traffic1[j,] <- c(time, tf1, tf35, tf183, tflm, tf8, tf290)
+# 
+# j <- j + 1
+# lb <- lb + 5
+# ub <- lb + 5
+# 
+# 
+# print(j)
+# 
+# 
+# 
+# }
+# toc()    
+
+```
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
