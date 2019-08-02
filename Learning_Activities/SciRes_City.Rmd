@@ -1,0 +1,750 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+
+require(ggplot2)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(viridis)
+
+```
+
+
+
+
+
+```{r}
+
+
+#modfied parameters
+
+#budget 
+y <- 37823
+#distance in the x axis
+u <- c(0,0,0,0,0,1,1,1,1,1,-1,-1,-1,-1,-1,2,2,2,2,2,-2,-2,-2,-2,-2)
+#distance in the y axis
+v <- c(0,1,-1,2,-2,0,1,-1,2,-2,0,1,-1,2,-2,0,1,-1,2,-2,0,1,-1,2,-2)
+
+
+#transportation cost 50 cents a mile by 320 days
+t <- 1000
+#housing price per sqft vector
+p <- c(0:25)
+#housing consumption (sqft) by mile vector
+q <- c(0:25)
+#general good
+g <- c(0:25)
+#utility level
+V <- 4000
+#alpha for Cobb Douglas
+al <- .5
+#beta for development cobb-douglas
+bt <- 4/3
+#capital 
+c0 <- 0
+
+#amentiy
+#set higher than 1
+ad <- 0.5
+
+
+
+#shows how distance affects ammenity leave at 1
+ng <- 1
+
+d <- 0
+
+#gamma for amenity
+gm <- 0.5
+
+
+
+#land rent/acre
+r <- c(0:25)
+#Housing floor space / acre
+s <- c(0:25)
+#ag rent
+ag <- 8000
+
+#new u,v
+
+i <- 1
+j <- 1
+ii <- 1
+
+while(i < 101){
+  
+  j <- 0
+  while(j < 101){
+  u[ii] <- i/5 - 10
+  v[ii] <- j/5 - 10
+  j <- j+1
+  ii <- ii+1
+  }
+  
+  i <- i +1
+  
+  }
+
+
+#finding x for various u,v
+x <- sqrt(u^2+v^2)
+
+#finding distance to amenity
+z <- sqrt((x-d)^2)
+
+```
+
+
+
+
+```{r}
+#City 1
+
+
+
+ad <- 0.5
+y <- 37823
+tb1 <- 1
+t <- 1000*tb1
+
+#tax Cuts
+y <- y*1
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+#optimal r
+r <- p*s - s^(bt)
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+
+city <- data.frame(u,v,x,z,p,g,q,s,r,am,n)
+city1 <- city[(city$r > ag),]
+
+
+nrow(city1)
+sum(city1$n)
+
+#using s (housing area/acre)
+s1 <-ggplot(city1, aes(x = u, y = v, color = s)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing Area/Acre: \n City 1')
+
+#using q (housing sqft for area)
+q1 <-ggplot(city1, aes(x = u, y = v, color = q)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'inferno') +
+  #scale_color_gradientn(colors = rainbow(10)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing sqft / sqmi: \n City 1')
+
+
+#population density
+pd1 <-ggplot(city1, aes(x = u, y = v, color = n)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) + 
+  labs(title = 'Population Density: \n City 1')
+
+#using am transportation distance
+am1 <-ggplot(city1, aes(x = u, y = v, color = am)) +
+   geom_point(size = 1, shape = 17) +
+  
+  scale_color_gradientn(colors = rainbow(7)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Amenity Level: \n City 1')
+
+p1 <-ggplot(city1, aes(x = u, y = v, color = p)) +
+   geom_point(size = 2, shape = 7) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'House Price: \n City 1')
+```
+
+```{r}
+#City 2
+
+ad <- 0.5
+y <- 37823*1.15
+tb2 <- 1
+t <- 1000*tb2
+
+#bought stadium
+ad <- ad
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+#optimal r
+r <- p*s - s^(bt)
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+
+city <- data.frame(u,v,x,z,p,g,q,s,r,am,n)
+city2 <- city[(city$r > ag),]
+
+head(city2,20)
+nrow(city2)
+sum(city2$n)
+
+#using s (housing area/acre)
+s2 <-ggplot(city2, aes(x = u, y = v, color = s)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing Area/Acre: \n City 2')
+
+#using q (housing sqft for area)
+q2 <-ggplot(city2, aes(x = u, y = v, color = q)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'inferno') +
+  #scale_color_gradientn(colors = rainbow(10)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing sqft / sqmi: \n City 2')
+
+
+#population density
+pd2 <-ggplot(city2, aes(x = u, y = v, color = n)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) + 
+  labs(title = 'Population Density: \n City 2')
+
+#using am transportation distance
+am2 <-ggplot(city2, aes(x = u, y = v, color = am)) +
+   geom_point(size = 1, shape = 17) +
+  
+  scale_color_gradientn(colors = rainbow(7)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Amenity Level: \n City 2')
+
+p2 <-ggplot(city2, aes(x = u, y = v, color = p)) +
+   geom_point(size = 2, shape = 7) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'House Price: \n City 2')
+```
+
+```{r}
+#City 3
+
+ad <- 0.5
+y <- 37823
+tb3 <- 1
+t <- 1000*tb3
+
+y <- y*1.15
+
+ad <- ad * 1.1
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+#optimal r
+r <- p*s - s^(bt)
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+
+city <- data.frame(u,v,x,z,p,g,q,s,r,am,n)
+city3 <- city[(city$r > ag),]
+
+
+nrow(city3)
+sum(city3$n)
+
+#using s (housing area/acre)
+s3 <-ggplot(city3, aes(x = u, y = v, color = s)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing Area/Acre: \n City 3')
+
+#using q (housing sqft for area)
+q3 <-ggplot(city3, aes(x = u, y = v, color = q)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'inferno') +
+  #scale_color_gradientn(colors = rainbow(10)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing sqft / sqmi: \n City 3')
+
+
+#population density
+pd3 <-ggplot(city3, aes(x = u, y = v, color = n)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) + 
+  labs(title = 'Population Density: \n City 3')
+
+#using am transportation distance
+am3 <-ggplot(city3, aes(x = u, y = v, color = am)) +
+   geom_point(size = 1, shape = 17) +
+  
+  scale_color_gradientn(colors = rainbow(7)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Amenity Level: \n City 3')
+
+p3 <-ggplot(city3, aes(x = u, y = v, color = p)) +
+   geom_point(size = 2, shape = 7) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'House Price: \n City 3')
+```
+
+```{r}
+#City 4
+
+ad <- 0.5
+y <- 37823
+tb4 <- 1
+t <- 1000*tb4
+
+
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+#optimal r
+r <- p*s - s^(bt)
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+
+city <- data.frame(u,v,x,z,p,g,q,s,r,am,n)
+city4 <- city[(city$r > ag),]
+
+
+nrow(city4)
+sum(city4$n)
+
+#using s (housing area/acre)
+s4 <-ggplot(city4, aes(x = u, y = v, color = s)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing Area/Acre: \n City 4')
+
+#using q (housing sqft for area)
+q4 <-ggplot(city4, aes(x = u, y = v, color = q)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'inferno') +
+  #scale_color_gradientn(colors = rainbow(10)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing sqft / sqmi: \n City 4')
+
+
+#population density
+pd4 <-ggplot(city4, aes(x = u, y = v, color = n)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) + 
+  labs(title = 'Population Density: \n City 4')
+
+#using am transportation distance
+am4 <-ggplot(city4, aes(x = u, y = v, color = am)) +
+   geom_point(size = 1, shape = 17) +
+  
+  scale_color_gradientn(colors = rainbow(7)) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal()+
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Amenity Level: \n City 4')
+
+p4 <-ggplot(city4, aes(x = u, y = v, color = p)) +
+   geom_point(size = 2, shape = 7) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'House Price: \n City 4')
+```
+
+
+
+
+
+```{r}
+
+library(formattable)
+
+
+
+
+#Transportation Expenditures
+
+#c_trans1 <- round(sum(city1$x*1000),0) carbon ban (5 capital) roads (2 of each)
+c_trans1 <- round(sum(city1$x*1000*tb1),0)
+c_trans2 <- round(sum(city2$x*1000*tb2),0)
+c_trans3 <- round(sum(city3$x*1000*tb3),0) 
+c_trans4 <- round(sum(city4$x*1000*tb4),0)
+
+c_trans <- rbind(c_trans1,c_trans2,c_trans3,c_trans4)
+
+
+#Transportation Energy Use and GHG Emissions 120.429 MBTU/ gal, cars average 27 mpg (EIA https://www.eia.gov/energyexplained/index.php?page=about_energy_units)
+
+#light rail every 15 mins for 12.5 hours 50 times every day. About 1 cars going 30 mph. Goes 1125 miles a day. 
+
+#64.642 MBTU/mile (http://www.rtd-fastracks.com/media/uploads/se/Energy_Tech_Report_0514_-_061814_vers.pdf)
+
+
+e_trans1 <- sum(city1$x*city1$n*365*2*120.429/27)
+e_trans2 <- sum(city2$x*city2$n*365*2*120.429/27)
+e_trans3 <- sum(city3$x*city3$n*365*2*120.429/27)
+e_trans4 <- sum(city4$x*city4$n*365*2*120.429/27)
+
+
+
+e_trans <- rbind(e_trans1,e_trans2,e_trans3,e_trans4)
+
+e_trans <- round(e_trans/1000,0)
+
+# GHG of trans 8.887 kg CO2 / gallon
+
+bn1 <- 1
+bn2 <- 1
+bn3 <- 1
+bn4 <- 1
+
+ghg_trans1 <- round(sum(city1$x*city1$n*365*2*8.887*bn1/(27*1000)),0)
+ghg_trans2 <- round(sum(city2$x*city2$n*365*2*8.887*bn2/(27*1000)),0)
+ghg_trans3 <- round(sum(city3$x*city3$n*365*2*8.887*bn3/(27*1000)),0)
+ghg_trans4 <- round(sum(city4$x*city4$n*365*2*8.887*bn4/(27*1000)),0)
+
+tCO2_trans <- rbind(ghg_trans1,ghg_trans2,ghg_trans3,ghg_trans4)
+
+#Residenital Energy Use and GHG Emissions 40 MBTU/sq ft (https://www.jchs.harvard.edu/blog/us-households-are-using-less-energy/)
+
+
+e_res1 <- sum(city1$q)*40 
+e_res2 <- sum(city2$q)*40 
+e_res3 <- sum(city3$q)*40 
+e_res4 <- sum(city4$q)*40 
+
+e_res <- rbind(e_res1,e_res2,e_res3,e_res4)
+
+e_res <- round(e_res/1000,0)
+
+#GHG .85 lb CO2 / kwh https://data.austintexas.gov/Utilities-and-City-Services/Carbon-Intensity/hetr-8wqd
+# 3.41214 MBTU/kwh 2204.6 metric tons per pound
+
+tCO2e_res <- round(e_res*(.85/(3.41214/1000))/2204.6,0)
+
+#Total energy and GHG
+e_total <- e_res + e_trans
+
+tCO2e_total <- tCO2e_res + tCO2_trans
+
+
+#Total Land Area of the City
+
+la1 <- nrow(city1)*(.2*.2)
+la2 <- nrow(city2)*(.2*.2)
+la3 <- nrow(city3)*(.2*.2)
+la4 <- nrow(city4)*(.2*.2)
+
+la <- rbind(la1,la2,la3,la4)
+
+
+#Total Population
+
+
+n1 <- round(sum(city1$n),0)
+n2 <- round(sum(city2$n),0)
+n3 <- round(sum(city3$n),0)
+n4 <- round(sum(city4$n),0)
+
+nt <- rbind(n1,n2,n3,n4)
+
+
+
+cities <- data.frame(c_trans, e_trans, tCO2_trans, e_res, e_total, tCO2e_total, la, nt)
+rownames(cities) <- c('City 1', 'City 2', 'City 3','City 4')
+
+colnames(cities) <- c('$_trans', 'MMBTU_trans', 'tCO2e_trans', 'MMBTU_res', 'MMBTU_total', 'tCO2e_total', 'City sqmi', 'Pop' )
+cities1 <- cities
+
+
+
+cities$`$_trans` <- prettyNum(cities$`$_trans`, big.mark = ',')
+cities$MMBTU_trans <- prettyNum(cities$MMBTU_trans, big.mark =',')
+cities$MMBTU_res <- prettyNum(cities$MMBTU_res, big.mark =',')
+cities$MMBTU_total <- prettyNum(cities$MMBTU_total, big.mark = ',')
+
+
+cities2 <- cities1[,c(1,6,7,8)]
+
+
+cities2$trans_cap <- cities2[,1]/cities2[,4]
+cities2$carbon_cap <- cities2[,2]/cities2[,4]
+cities2$pop_den <- cities2[,3]/cities2[,4]
+
+cities
+cities2
+
+
+
+
+
+```
+
+```{r}
+# Displaying all graphs and Saving All Graphs
+
+
+
+
+#Population Density Across Urban Areas
+pop_den <- grid.arrange(pd1,pd2,pd3,pd4, ncol=2, nrow = 2)
+
+#Housing Density Across Urban Areas
+house_den <- grid.arrange(s1,s2,s3,s4, ncol =2, nrow =2)
+
+#Housing Prices Across Urban Areas
+price_grid <- grid.arrange(p1, p2, p3, p4, ncol = 2, nrow =2)
+
+#Housing Sq ft
+sq_grid <- grid.arrange(q1,q2,q3, q4, ncol=2, nrow = 2)
+
+#Amenity Grid
+am_grid <- grid.arrange(am1,am2,am3, am4, ncol=2, nrow = 2)
+
+
+
+
+#Uncomment Out to Save Graphs as Pictures
+
+
+#ggsave(filename = "pop_den.pdf", pop_den)
+#ggsave(filename = "house_den.pdf", house_den)
+#ggsave(filename = "price_grid.pdf", price_grid)
+#ggsave(filename = "sq_grid.pdf", sq_grid)
+#ggsave(filename = "am_grid.pdf", am_grid)
+
+
+
+
+```
+
+
+
+```{r}
+#Preview Plot or Dataframe Plots
+
+cities[1,]
+
+#City 5
+
+ad <- 0.5
+y <- 37823
+t <- 1000
+
+
+
+
+
+
+#amentiy distribution
+am <- 1 + ad*(exp(-ng*z))
+
+#finding the price for various u,v
+p <- (al^al*(1-al)^(1-al)*am^gm*(y-t*x)/V)^(1/al)
+
+
+#optimal q
+q <- al*(y-t*x)/p
+
+#optimal g
+g <- (1-al)*(y-t*x)
+
+#optimal s
+s <- (p/bt)^(1/(bt-1))
+
+#optimal r
+r <- p*s - s^(bt)
+
+#population n s(floorspaceperacre/ floorspace per household * (size of square (sqmi)) * acres/sqmi * fraction of housing in area)
+n <- s/q * (.2*.2) * 640 * .25 
+
+
+city <- data.frame(u,v,x,z,p,g,q,s,r,am,n)
+city5 <- city[(city$r > ag),]
+
+
+
+
+#using s (housing area/acre)
+pd5 <-ggplot(city4, aes(x = u, y = v, color = n)) +
+   geom_point(size = 1, shape = 19) +
+  scale_color_viridis(option = 'magma', direction = -1) +
+  lims(x=c(-10,10),y=c(-10,10)) +
+  coord_fixed() +  
+  theme_minimal() +
+  geom_vline(xintercept = 0) + 
+  geom_hline(yintercept = 0) +
+  labs(title = 'Housing Area/Acre: \n City 5')
+
+nrow(city5)
+sum(city5$n)
+max(city5$r)
+
+pd5
+
+
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
